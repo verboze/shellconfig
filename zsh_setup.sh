@@ -12,11 +12,14 @@ function load-starter-plugin-list() {
   ZGEN_LOADED=()
   ZGEN_COMPLETIONS=()
 
+  # load prezto
+  zgen prezto
+
   # If zsh-syntax-highlighting is bundled after zsh-history-substring-search,
   # they break, so get the order right.
   zgen load zsh-users/zsh-syntax-highlighting
   zgen load zsh-users/zsh-history-substring-search
-  zgen load tarruda/zsh-autosuggestions
+  #zgen load tarruda/zsh-autosuggestions
 
   # Set keystrokes for substring searching
   zmodload zsh/terminfo
@@ -36,11 +39,8 @@ function load-starter-plugin-list() {
   # in a repository securely by encrypting them with gnupg
   zgen load StackExchange/blackbox
 
-  # load prezto
-  zgen prezto
-
-  # Load some plugins
-  #zgen prezto prompt theme 'pure'
+  # Load some prezto plugins
+  zgen prezto prompt theme 'pure'
   zgen prezto pip
   zgen prezto brew
   zgen prezto git
@@ -96,13 +96,6 @@ function setup-zgen-repos() {
     for rcfile in $(echo zpreztorc zshenv zlogin zshrc zsh_aliases zsh_functions zsh_keybindings); do
       wget -q $SOURCEHOME/$rcfile -O $HOME/.zprezto/runcoms/$rcfile
     done
-    #wget -q $SOURCEHOME/zpreztorc -O ${HOME}/.zprezto/runcoms/zpreztorc
-    #wget -q $SOURCEHOME/zshenv -O ${HOME}/.zprezto/runcoms/zshenv
-    #wget -q $SOURCEHOME/zlogin -O ${HOME}/.zprezto/runcoms/zlogin
-    #wget -q $SOURCEHOME/zshrc -O ${HOME}/.zprezto/runcoms/zshrc
-    #wget -q $SOURCEHOME/zsh_aliases -O ${HOME}/.zprezto/runcoms/zsh_aliases
-    #wget -q $SOURCEHOME/zsh_functions -O ${HOME}/.zprezto/runcoms/zsh_functions
-    #wget -q $SOURCEHOME/zsh_keybindings -O ${HOME}/.zprezto/runcoms/zsh_keybindings
   }
 }
 

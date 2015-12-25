@@ -5,6 +5,9 @@
 #   Sorin Ionescu <sorin.ionescu@gmail.com>
 #
 
+# setup zgen
+source ~/.zprezto/modules/zgen/zgen.zsh
+
 # Source Prezto.
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
   source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
@@ -60,10 +63,10 @@ function dedupe_path() {
 dedupe_path
 
 # auto suggestions plugin
-function zle-line-init() {
-  zle autosuggest-start
-}
-zle -N zle-line-init
+#function zle-line-init() {
+  #zle autosuggest-start
+#}
+#zle -N zle-line-init
 
 # aliases and utility functions
 [[ -s "${ZDOTDIR:-$HOME}/.zprezto/zsh_aliases" ]] && source "${ZDOTDIR:-$HOME}/.zprezto/zsh_aliases"
