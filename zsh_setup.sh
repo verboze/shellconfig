@@ -2,8 +2,7 @@
 # inspired by https://github.com/unixorn/zsh-quickstart-kit
 
 SETUPDIR='/var/tmp/shell_setup'
-#SOURCEHOME='https://raw.githubusercontent.com/verboze/zsh-quickstart-kit/master/zsh'
-SOURCEHOME='https://github.com/verboze/shellconfig'
+SOURCEHOME='https://raw.githubusercontent.com/verboze/shellconfig/master/runcoms'
 
 # ------------------------------------------------------
 # DEFINE FUNCTIONS TO SETUP CONFIG
@@ -41,7 +40,7 @@ function load-starter-plugin-list() {
   zgen prezto
 
   # Load some plugins
-  zgen prezto prompt theme 'pure'
+  #zgen prezto prompt theme 'pure'
   zgen prezto pip
   zgen prezto brew
   zgen prezto git
@@ -94,13 +93,16 @@ function setup-zgen-repos() {
     # add zgen as prezto module. it is then sourced from zshrc so it's always available
     cp -r ${SETUPDIR}/zgen ${HOME}/.zprezto/modules
     rm -rf $SETUPDIR
-    wget -q $SOURCEHOME/zpreztorc -O ${HOME}/.prezto/runcoms/zpreztorc
-    wget -q $SOURCEHOME/zshenv -O ${HOME}/.prezto/runcoms/zshenv
-    wget -q $SOURCEHOME/zlogin -O ${HOME}/.prezto/runcoms/zlogin
-    wget -q $SOURCEHOME/zshrc -O ${HOME}/.prezto/runcoms/zshrc
-    wget -q $SOURCEHOME/zsh_aliases -O ${HOME}/.prezto/runcoms/zsh_aliases
-    wget -q $SOURCEHOME/zsh_functions -O ${HOME}/.prezto/runcoms/zsh_functions
-    wget -q $SOURCEHOME/zsh_keybindings -O ${HOME}/.prezto/runcoms/zsh_keybindings
+    for rcfile in $(echo zpreztorc zshenv zlogin zshrc zsh_aliases zsh_functions zsh_keybindings); do
+      wget -q $SOURCEHOME/$rcfile -O $HOME/.zprezto/runcoms/$rcfile
+    done
+    #wget -q $SOURCEHOME/zpreztorc -O ${HOME}/.zprezto/runcoms/zpreztorc
+    #wget -q $SOURCEHOME/zshenv -O ${HOME}/.zprezto/runcoms/zshenv
+    #wget -q $SOURCEHOME/zlogin -O ${HOME}/.zprezto/runcoms/zlogin
+    #wget -q $SOURCEHOME/zshrc -O ${HOME}/.zprezto/runcoms/zshrc
+    #wget -q $SOURCEHOME/zsh_aliases -O ${HOME}/.zprezto/runcoms/zsh_aliases
+    #wget -q $SOURCEHOME/zsh_functions -O ${HOME}/.zprezto/runcoms/zsh_functions
+    #wget -q $SOURCEHOME/zsh_keybindings -O ${HOME}/.zprezto/runcoms/zsh_keybindings
   }
 }
 
