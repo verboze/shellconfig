@@ -226,3 +226,14 @@ if [ -f ~/.zsh_functions.local ]; then
   source .zsh_functions.local
   echo ".zsh_functions.local is deprecated. Make entries in ~/.zshrc.d instead."
 fi
+
+
+# =================================================================================
+# =================================================================================
+# =================================================================================
+# =================================================================================
+function findcmd() {
+  [[ -z $1 ]] && { echo "missing command"; return 1; }
+  type $1 | grep "alias" && { grep -rl "alias[ ]+$1=" .zgen; return; } \
+                         || { which $1 }
+}
