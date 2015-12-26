@@ -72,3 +72,5 @@ dedupe_path
 [[ -s "${ZDOTDIR:-$HOME}/.zprezto/zsh_aliases" ]] && source "${ZDOTDIR:-$HOME}/.zprezto/zsh_aliases"
 [[ -s "${ZDOTDIR:-$HOME}/.zprezto/zsh_functions" ]] && source "${ZDOTDIR:-$HOME}/.zprezto/zsh_functions"
 [[ -s "${ZDOTDIR:-$HOME}/.zprezto/zsh_keybindings" ]] && source "${ZDOTDIR:-$HOME}/.zprezto/zsh_keybindings"
+
+prompt -s source
