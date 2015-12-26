@@ -1,74 +1,379 @@
 # some functions/aliases taken from: https://github.com/unixorn/zsh-quickstart-kit
 
-# from cads@ooyala.com
-function ff() {
-  find . -type f -iname '*'$@'*' -ls
-}
-
-# Find things in that enormous command history file
-function hgrep {
-  history | grep -i "$@" | tail -20
-}
-
-# From Dan Ryan's blog - http://danryan.co/using-antigen-for-zsh.html
-function man() {
-  env \
-    LESS_TERMCAP_mb=$(printf "\e[1;31m") \
-    LESS_TERMCAP_md=$(printf "\e[1;31m") \
-    LESS_TERMCAP_me=$(printf "\e[0m") \
-    LESS_TERMCAP_se=$(printf "\e[0m") \
-    LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
-    LESS_TERMCAP_ue=$(printf "\e[0m") \
-    LESS_TERMCAP_us=$(printf "\e[1;32m") \
-      man "$@"
-}
-
-# From commandlinefu.com
-function watch() { t=$1; shift; while test :; do clear; date=$(date); echo -e "Every $ts: $@ \t\t\t\t $date"; $@; sleep $t; done }
-
-# scp file to machine you're sshing into this machine from
-function scptolocal () {
-  scp "$@" ${SSH_CLIENT%% *}:~/Downloads/;
-}
-
-function calc() {
-  awk "BEGIN{ print $* }" ;
-}
-
-function authme {
-  ssh "$1" 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_dsa.pub
-}
-
-function jsoncurl() {
-  curl "$@" | python -m json.tool
-}
-
-show_terminal_colors() {
-  for i in {0..255} ; do
-    printf "\x1b[38;5;${i}mcolour${i}\n"
-  done
-}
-
-# Batch change extension from $1 to $2
-chgext() {
-  for file in *.$1
-  do
-    mv $file $(echo $file | sed "s/\(.*\.\)$1/\1$2/")
-  done
-}
-
-# Probe a /24 for hosts
-scan24() {
-  nmap -sP ${1}/24
-}
-
-# lists zombie processes
-function zombies() {
-  ps aux | awk '{if ($8=="Z") { print $2 }}'
-}
-
-function findcmd() {
+# DETAILS ABOUT COMMAND/FUNCTION/ALIAS
+# ====================================
+function cmdnfo() {
   [[ -z $1 ]] && { echo "missing command"; return 1; }
-  type $1 | grep "alias" && { grep -rl "alias[ ]+$1=" .zgen; return; }
   which $1
+  type $1 | grep "alias" && { echo -n "defined in: "; grep -rl "alias[ ]+$1=" ${HOME/}.zgen; }
 }
+
+# DIRECTORY BOOKMARKING FUNC
+# ==========================
+#original script found at: https://bbs.archlinux.org/viewtopic.php?id=93016
+#usage:
+#  source the file containing this function in your .bashrc
+#  add the following to your .bashrc if you want tab completion for the bookmark names
+#  complete -W "COMPREPLY" -o "nospace" "<function_name_or_alias>"
+
+function bookmark() {
+    # TODO: extend to enable bookmarking of regular files as well.
+    # init: create bookmark db if not available
+    thisfuncname="$(basename $0)"
+    local BOOKMARK_DB=${HOME}/.bmarks.db
+    #local INI_FILE=${HOME}/.bmarks.ini
+    local INI_FILE=/var/tmp/.bmarks.ini
+    local CONF_FILE=${HOME}/.bmarks.conf
+    local ERRMSG="Bad query. usage: $thisfuncname [options] [args]. use $thisfuncname -h for help"
+    local NOTFOUND="no bookmark found with provided id or name"
+    local CMD MARK NAME ID UPDID CMDFLAGS RES HANDLEREXPR
+    #CMDFLAGS="-echo" # Turn this on for debugging
+
+    # initialize if needed, create db and conf files
+    sqlite3 $CMDFLAGS $BOOKMARK_DB "select * from bookmarks" >/dev/null 2>&1
+    [[ $? -ne 0 ]] && {
+        sqlite3 $CMDFLAGS $BOOKMARK_DB "create table bookmarks \
+                (id INTEGER, name TEXT, path TEXT, type TEXT, added_on DATE)";
+    }
+    [[ ! -f $CONF_FILE ]] && {
+        echo -ne "_MOPENHANDLER1=cd\n_MOPENHANDLER2=vim\_MOPENHANDLER3=ql" > $CONF_FILE
+    }
+    [[ ! -f $INI_FILE ]] && {
+        echo -ne ".header ON\n.mode column\n.width 3 20 60 16" > $INI_FILE;
+    }
+
+    # this file defines how to open marks
+    source $CONF_FILE
+
+    # scan args, default values if necessary
+    if [ -z "$*" ]; then CMD='LIST'; fi
+    while [ $# -gt 0 ]; do
+       case "$1" in
+       -h|--help)      CMD='HELP';   break;;
+       -i|--init)      CMD='INIT';   break;;
+       -l|--list)      CMD='LIST';   break;;
+       -p|--pop)       CMD='POP';    break;;
+       -q|--query)     CMD='QUERY';  shift; MARK=$1; break;;
+       -j|--jump)      CMD='JUMP';   shift; MARK=$1; break;;
+       -a|--add|+)     CMD='ADD';    shift; MARK=$1; shift; NAME=$1;  break;;
+       -r|--reorder)   CMD='ORD';    shift; MARK=$1; shift; UPDID=$1; break;;
+       -u|--update)    CMD='UPD';    shift; MARK=$1; shift; NAME=$1;  shift; UPDID=$1; break;;
+       -d|--delete|-)  CMD='DEL';    shift; MARK=$1; break;;
+       -f|--flush)     CMD='FLUSH';  break;;
+        *)             CMD='JUMP'; MARK=$1; break;;
+       esac
+    done
+
+    # exec command
+    case $CMD in
+       HELP)
+           echo "USAGE:"
+           echo "  $thisfuncname [-s | --switch] [<path>] [name]"
+           echo "  Where [path] is a directory, [name] an alphanumeric string"
+           echo "  When no arguments are provided, will list current bookmarks"
+           echo "  When argument is provided without a switch, attempt to jump to that item"
+           echo "  Switches are: [h]elp, [l]ist, [q]uery, [j]ump, [a]dd, [d]elete, [f]lush"
+           echo "EXAMPLES:"
+           echo "  List all bookmarks:                             $thisfuncname or $thisfuncname -l"
+           echo "  Bookmark the directory /path:                   $thisfuncname --add /path"
+           echo "  Bookmark current directory with name 'curr':    $thisfuncname -a . curr"
+           echo "  Update existing mark with index 1:              $thisfuncname -u /newpath newname 1"
+           echo "  Query path bookmark at index 2 points to:       $thisfuncname -q 2"
+           echo "  Query path bookmark with name 'curr' points to: $thisfuncname -q curr"
+           echo "  Query path of last bookmark:                    $thisfuncname -q"
+           echo "  Delete bookmark at index 2:                     $thisfuncname -d 2"
+           echo "  Delete bookmark with name 'curr':               $thisfuncname -d curr"
+           echo "  query and delete most recent bookmark:          $thisfuncname -p"
+           echo "  query and delete bookmark at index 3:           $thisfuncname -p 3"
+           echo "  Delete all bookmarks:                           $thisfuncname --flush"
+           echo "  Go to bookmark at index 1:                      $thisfuncname --jump 1"
+           echo "  Go to bookmark named 'curr':                    $thisfuncname -j curr"
+           echo "  Go to last bookmarked dir:                      $thisfuncname -j"
+       ;;
+       INIT)
+           return #FIXME: implement this
+           # init: compile list of current tabs for tab completion
+           COMPREPLY=()
+           COMPREPLY=$(grep -o '^\<\w*\>' $BOOKMARK_DB | tr "\\n" " ")
+           complete -W "$COMPREPLY" -o "nospace" "${MY_BM_ALIAS:-bookmark}"
+       ;;
+       LIST)
+          local SQL="select id, name, case when length(path) > 60 then \"...\" || \
+                     substr(path, length(path)+1, -57) else path end path, \
+                     strftime('%Y-%m-%d %H:%M', added_on) added_on from bookmarks;"
+          sqlite3 $CMDFLAGS -init $INI_FILE $BOOKMARK_DB "$SQL" 2> /dev/null
+       ;;
+       QUERY)
+           if [ ! -z "$MARK" ]; then
+              if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
+              elif [[ "$MARK" =~ ^-$ ]]; then ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks")
+              else ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""); fi
+           else
+               echo "bad query: missing name or index"
+               return 1
+           fi
+
+           # make sure ID is not empty before querying DB
+           [ ! -z "$ID" ] || ID=-1
+           RES=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select path from bookmarks where id=$ID")
+           if [ ! -z "$RES" ]; then echo "$RES";
+           else return 1; fi
+       ;;
+       JUMP)
+           # check for parameter
+           if [ ! -z "$MARK" ]; then
+              if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
+              elif [[ "$MARK" =~ ^-$ ]]; then ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks")
+              else ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""); fi
+           else
+               echo "bad query: missing name or index"
+               return 1
+           fi
+
+           # read mark from db
+           RES=$(sqlite3 $CMDFLAGS -separator ',' $BOOKMARK_DB "select type, path from bookmarks where id=$ID")
+           if [ ! -z "$RES" ]; then
+               HANDLEREXPR="_MOPENHANDLER${RES}"
+               HANDLEREXPR=${HANDLEREXPR/,/ }
+               eval $"$HANDLEREXPR" # open file with appropriate handler
+           else echo "$NOTFOUND"; return 1; fi
+       ;;
+       FLUSH)
+           read -p "really remove all bookmarks? [y/n]: " CONFIRM
+           if [ ! "y" = "$CONFIRM" ]; then return; fi
+           sqlite3 $CMDFLAGS $BOOKMARK_DB "delete from bookmarks"
+           echo "--> All bookmarks removed"
+       ;;
+       ADD)
+           # FIXME: allow adding of other types of files. use file -I to determine file type
+           if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not added"; return 1; fi
+           if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not added"; return 1; fi
+
+           MARK=`greadlink -f "$MARK"`
+           if [ ! -z "$NAME" ]; then ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`; fi
+
+           if [ ! -z "$ID" -a ! "-1" = "$ID" ]; then
+               read -p "bookmark [$NAME] exists. update it? [y/n]: " CONFIRM
+               if [ ! "y" = "$CONFIRM" ]; then return; fi
+               sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", added_on=datetime('now') where id=$ID"
+           else
+              local NEXTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks"`
+              NEXTID=$(($NEXTID + 1))
+              sqlite3 $CMDFLAGS $BOOKMARK_DB "insert into bookmarks(id, name, path, type, added_on) \
+                                    values($NEXTID, \"$NAME\", \"$MARK\", "1", datetime('now'))"
+           fi
+
+           echo "--> bookmarked \"$MARK\""
+       ;;
+       ORD)
+           # TODO: update set id=-1 where id=me; update set id=id-1 where id < newme;
+           # TODO: update set id=id+1 where id >= newme; set myid = newme; update set id=newme where id=-1
+
+           #if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not updated"; return 1; fi
+           #if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
+           #if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
+
+           #MARK=`greadlink -f "$MARK"`
+           #local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
+           #local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
+
+           #if [ -z "$EXISTID" ]; then echo "$NOTFOUND"; return 1; fi
+           #if [ ! -z "$UNIQUENAME" ]; then echo "name already used. choose a different name"; return 1; fi
+           #sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", name=\"$NAME\", \
+                                 #added_on=datetime('now') where id=$UPDID"
+           #echo "--> bookmarked \"$MARK\""
+       ;;
+       UPD)
+           # FIXME: allow adding of other types of files. use file -I to determine file type
+           if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not updated"; return 1; fi
+           if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
+           if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
+
+           MARK=`greadlink -f "$MARK"`
+           local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
+           local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
+
+           if [ -z "$EXISTID" ]; then echo "$NOTFOUND"; return 1; fi
+           if [ ! -z "$UNIQUENAME" ]; then echo "name already used. choose a different name"; return 1; fi
+           sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", name=\"$NAME\", \
+                                 added_on=datetime('now') where id=$UPDID"
+           echo "--> bookmarked \"$MARK\""
+       ;;
+       DEL)
+           # use ID of last element if no param provided, else get ID using id or name provided
+           if [ -z "$MARK" ]; then echo "$ERRMSG"; return 1; fi
+           if [ "-" = "$MARK" ]; then
+              ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks"`
+           else
+              if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
+              else ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""`; fi
+           fi
+
+           # remove and reorder keys upon deletion
+           if [ -z "$ID" ]; then echo "$NOTFOUND"; return; fi
+           local REMDATA=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select path from bookmarks where id=$ID"`
+           sqlite3 $CMDFLAGS $BOOKMARK_DB "delete from bookmarks where id=$ID"
+           sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set id=id-1 where id > $ID" 
+           echo "removed bookmark \"$REMDATA\""
+       ;;
+       POP)
+           RES=$($thisfuncname -q -)
+           $thisfuncname -d - > /dev/null
+           echo $RES
+       ;;
+       *)
+       ;;
+    esac
+}
+
+# GET RANDOM POST FROM COMMANDLINEFU.COM
+# ======================================
+function clfu() {
+   #get random command from commandlinefu, print it
+   local out fname
+   fname=/tmp/clfu${RANDOM}.txt
+   w3m -dump "http://www.commandlinefu.com/commands/random/plaintext" | sed  '1,2d' > $fname
+   out=$(source-highlight --failsafe -f esc --lang-def=sh.lang --style-file=esc.style -i $fname)
+   nl -b n <<<$out
+   rm -f $fname
+}
+
+# Get local and external IPs
+# ==========================
+function inetstat() {
+   localip=`ipconfig getifaddr en0`
+   remoteip=`wget -q -O - checkip.dyndns.org|sed -e 's/.*Current IP Address: //' -e 's/<.*$//'`
+   echo -ne "LOCAL  IP: $localip\nREMOTE IP: $remoteip\n"
+}
+
+# delete to trash
+# ===============
+function trash() {   #"delete file to trash"
+   [[ ! -d "$HOME/.Trash" ]] && { mkdir -p "$HOME/.Trash"; }
+   for i in "$@"; do
+      #only delete valid files
+      local p=$(basename "$i")
+      if [[ -d "$i" || -f "$i" ]]; then
+         # append the time if file with same name already exists in trash
+         if [[ -d "$HOME/.Trash/$p" || -f "$HOME/.Trash/$p" ]]; then
+            p="$p-$(date +%Y%m%d%H%M%S)"
+         fi
+         # TODO: keep a db record of trashed files so
+         #       to undelete can list those files, and restore them as needed
+         mv "$i" "$HOME/.Trash/$p"
+      else echo "\"$i\" does not exist"; fi
+   done
+}
+
+# prettier jobs function
+# ======================
+function j() { 
+    if [[ "$1" =~ ^([0-9]+|-)$ ]]; then fg %$1; return; fi
+    if [ ! -z "$1" ]; then j | /usr/local/bin/ggrep --color -ie "$*"; return; fi
+
+    my_cl='[01;38;05;214;48;05;0m'
+    local l
+    l=`jobs -l | gsed -e 's/\[\|\]//g' | gsed '/(pwd now:/d'`
+    if [ ! -z $l ]; then
+        echo -e "${my_cl}JOB   PID    STATE      COMMAND$reset_color"
+        awk '/[0-9]+[ ]+(\+|-)/{printf("%-3s %s %-6s %-10s %s\n", $1, $2, $3, $4, substr($0, index($0,$5))); \
+             next}{printf("%-5s %-6s %-10s %s\n", $1, $2, $3, substr($0, index($0,$4)))}' <<< $l
+    else echo "no current jobs..."
+    fi  
+}
+
+# allow CD to jump to bookmarks
+# =============================
+function cd() {
+    if [ -z "$*" ]; then
+        builtin cd
+    elif [ -d "$*" -o "x-" = "x$*" ]; then
+        builtin cd "$@"
+    elif [ "x`bookmark | awk '{print $2}' | grep $*`" = "x$*" ]; then
+        bookmark -j "$@"
+    else
+        echo "no such directory or bookmark: $*" 1>&2
+        return 1
+    fi
+}
+
+# undelete trashed files
+# ======================
+# TODO: implement
+
+# list/load vim sessions
+# ======================
+function vsession() {
+    local slist scount session action
+    # get args
+    action='show'
+    while getopts ":dlc" opt; do
+        case $opt in
+             d)  action='del'    ;;
+             l)  action='list'   ;;
+             c)  action='create' ;;
+            \?)  echo "invalid option: -$OPTARG" >&2; return 1 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    session=$1
+
+    [[ ! -z "$session" && $action == "show" ]] && {  action='load'; }
+    [[ ! -z "$session" && ! "x$action" == "xcreate" && ! -f  ~/.vim/sessions/${session}.vim ]] && { echo "invalid session: $session" >&2; return 1; }
+    if [[ "x$action" == "xlist"  ]]; then
+        cat ~/.vim/sessions/${session}.vim | grep "^\(badd\)" | sed 's/badd\|+[0-9]\+//g'
+    elif [[ "x$action" == "xload"  ]]; then
+        vim -S ~/.vim/sessions/${session}.vim
+    elif [[ "x$action" == "xcreate"  ]]; then
+        [[ -f  ~/.vim/sessions/${session}.vim ]] && { echo "session [$session] already exists" >&2; return 1; }
+        vim -c ":SaveSession ${session}"
+    elif [[ "x$action" == "xdel"  ]]; then
+        read -q REPLY\?"delete session $session (y/n): "; echo -ne "\n"
+        [[ "x$REPLY" == "xy" ]] && { rm -f ~/.vim/sessions/${session}.vim; echo -ne "session $session deleted\n"; }
+    else
+        # no input provided, just show sessions
+        slist=""
+        scount=1
+        for i in $(ls -rt ~/.vim/sessions | egrep ".vim$"); do
+            slist="${slist}${scount}: $(basename $i .vim)\n"
+            scount=$(($scount + 1))
+        done
+        echo -ne $slist
+    fi
+}
+
+# COMPLETION FUNCTIONS
+# ====================
+compdef _dirsbookmarkscpl cd
+compdef _bookmarkcpl bookmark
+compdef _listsessions vsession
+function _dirsbookmarkscpl { _cd || _bookmarkcpl; } 
+function _bookmarkcpl { _values $(echo 'description:bookmarks'; sqlite3 ~/.bmarks.db 'select name from bookmarks'); }
+function _listsessions { _values $(echo 'description:vim_sessions'; ls ~/.vim/sessions | egrep .vim$ | while read -r; do basename $REPLY .vim; done); }
+
+# ============================================================================================================================
+# misc one liners
+# ============================================================================================================================
+function lsgrep()      { ack -il "$@" ; }                                 # list files matching pattern in provided files
+function scan24()      { nmap -sP ${1}/24; }                              # Probe a /24 for hosts
+function hgrep()       { history | grep -i "$@"; }                        # gets commands from history matching provided string
+function histsearch()  { history | grep -i "$@"; }                        # gets commands from history matching provided string
+function page()        { eval "$@" | less -I~; }                          # pipe any command to less
+function scptolocal()  { scp "$@" ${SSH_CLIENT%% *}:~/Downloads/; }       # scp file to machine you're sshing into this machine from
+function calc()        { awk "BEGIN{ print $* }" ; }                      # perform calculations
+function jsoncurl()    { curl "$@" | python -m json.tool; }               # pretty format json responses
+function wman()        { w3m "http://unixhelp.ed.ac.uk/CGI/man-cgi?$1"; } # man pages from the web
+function zombies()     { ps aux | awk '{if ($8=="Z") { print $2 }}'; }    # lists zombie processes
+function dirtree()     { gls -R | grep -e ":\$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//__/g' -e 's/^/  /' -e 's/_/|/'; } # list directory tree
+function psgrep()      { Q=`echo $* | sed -e 's/^\([a-zA-Z0-9]\)\(.*\)$/[\1]\2/g'`; ps aux | grep -i $Q; } # grep running process
+function lsf()         { find . -type f -iname "*$1*" -print0 | xargs -0 ls -l {} \; | sed 's/ [.][/]/ /' | grep -i "$1" ; } # find files containing string in their names
+function aac2mp3()     { [[ -z "$1" || -z "$2" ]] && { echo "missing input/output file"; return 1; }; [[ ! -f "$1" ]] && { echo "input file not found"; return 1; }; ffmpeg -i $1 -acodec mp3 -ac 2 -ab 160 $2; }
+function trimmp3()     { local infname outfname t0 t1; t0=$1; t1=$2; infname=$3; outfname=$4; ffmpeg -ss $t0 -t $t1 -i "$infname" -acodec copy "$outfname"; }
+function countfiles()  { if [ -z "$*" ]; then find . -type f | wc -l; else find . -type f -iname "$*" | wc -l fi; } # count files, optionally by kind
+function authme()      { ssh "$1" 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_dsa.pub; } # push keys to remote machine for passwordless authentication
+function chgext()      { for file in *.$1; do mv $file $(echo $file | sed "s/\(.*\.\)$1/\1$2/"); done; } # Batch change extension from $1 to $2
+function term_colors() { for i in {0..255}; do printf "\x1b[38;5;${i}mcolour${i}\n"; done; } # print terminal coloers
+function ql()          { [[ -z "$@" ]] && { qlmanage -h; return -1; }; qlmanage -p "$@" >/dev/null 2>&1 &; } ]] } # preview (OSX)
+#broken...
+#function lsr()         { find "$@" -type f -print0 | xargs -0 ls -l ; #ls files recursively
+#function lgrep()       { find . -type f -iname "$1" -exec /usr/local/bin/grep -HliE "$2" {} \; ; }
