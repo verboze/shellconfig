@@ -1,4 +1,3 @@
-# some functions/aliases taken from: https://github.com/unixorn/zsh-quickstart-kit
 unalias -a # clear all aliases, redefine my own ones
 
 # OSX specific aliases

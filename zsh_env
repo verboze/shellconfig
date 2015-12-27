@@ -1,0 +1,54 @@
+# pager configuration
+export LESS='-R'
+export LESSOPEN='| /usr/local/bin/src-hilite-lesspipe.sh %s'
+
+# change default ls colors
+#export LS_COLORS="ow=01;34:di=00;34:ex=00;31"
+
+# directory stack. allows cd -{stacknum}. dirs -v to list dirs on the stack
+export DIRSTACKSIZE=8
+setopt autopushd pushdminus pushdsilent pushdtohome
+
+export JAVA_HOME='/Library/Java/Home'
+export ANDROID_HOME='/usr/local/lib/androidsdk'
+
+# configure path
+for path_candidate in /usr/local/lib/androidsdk/tools:\
+                      /usr/local/lib/androidsdk/platform-tools:\
+                      /usr/local/lib/apache-maven-3.3.3/bin:\
+                      /usr/local/sbin:\
+                      /usr/local/bin:\
+                      /usr/sbin:\
+                      /usr/bin:\
+                      /sbin:\
+                      /bin
+do [[ -d ${path_candidate} ]] && export PATH=${PATH}:${path_candidate}; done
+
+
+# history configuration
+setopt append_history
+setopt extended_history
+setopt hist_expire_dups_first
+setopt hist_ignore_all_dups
+setopt hist_ignore_dups
+setopt hist_ignore_space
+setopt hist_reduce_blanks
+setopt hist_save_no_dups
+setopt hist_verify
+setopt share_history # share hist accross shells
+HISTSIZE=1000
+SAVEHIST=1000
+
+# prevent accidental overwriting of files. use >! to force
+setopt noclobber
+
+# Speed up autocomplete, force prefix mapping
+zstyle ':completion:*' accept-exact '*(N)'
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zgen/_cache
+zstyle -e ':completion:*:default' list-colors 'reply=("${PREFIX:+=(#bi)($PREFIX:t)*==34=34}:${(s.:.)LS_COLORS}")';
+
+#virtualenv
+export WORKON_HOME=$HOME/.virtualenvs
+export PROJECT_HOME=$HOME/Projects
+[ -f /usr/local/bin/virtualenvwrapper.sh ] && source /usr/local/bin/virtualenvwrapper.sh

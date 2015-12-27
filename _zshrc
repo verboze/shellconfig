@@ -1,8 +1,8 @@
 #!/usr/bin/zsh
 # taken from: https://gist.github.com/mystelynx/bca7d875f4c1596d66e0
 
-ZGENHOME=$HOME/.zgen
-MYZCONF=$ZGENHOME/verboze/shellconfig-master
+export ZGENHOME=$HOME/.zgen
+export MYZCONF=$ZGENHOME/verboze/shellconfig-master
 #export ZGEN_RESET_ON_CHANGE=($HOME/.zshrc) # autoupdate on zshrc change
 
 [[ ! -d $ZGENHOME ]] && { 
@@ -55,7 +55,7 @@ funciton zgen-loadconfig() {
   zgen load zsh-users/zsh-completions src
   zgen load RobSis/zsh-completion-generator
   zgen load rimraf/k
-  #zgen load StackExchange/blackbox
+  zgen load StackExchange/blackbox
 
   # my own configs
   zgen load verboze/shellconfig
@@ -78,15 +78,19 @@ function zgen-uninstall() {
   fi
 }
 
-export LESS='-R'
-export LESSOPEN='| /usr/local/bin/src-hilite-lesspipe.sh %s'
-
 # load plugins if not already laoded
 if ! zgen saved; then zgen-loadconfig; fi
 
-# aliases and utility functions
+# env config
+export LESS='-R'
+export LESSOPEN='| /usr/local/bin/src-hilite-lesspipe.sh %s'
+
+# environment, aliases and utility functions
+[[ -s "$MYZCONF/zsh_env" ]] && source "$MYZCONF/zsh_env"
+[[ -s "$MYZCONF/zsh_penv" ]] && source "$MYZCONF/zsh_penv"
 [[ -s "$MYZCONF/zsh_aliases" ]] && source "$MYZCONF/zsh_aliases"
 [[ -s "$MYZCONF/zsh_functions" ]] && source "$MYZCONF/zsh_functions"
+[[ -s "$MYZCONF/zsh_completions" ]] && source "$MYZCONF/zsh_completions"
 [[ -s "$MYZCONF/zsh_keybindings" ]] && source "$MYZCONF/zsh_keybindings"
 
 # hook direnv if present

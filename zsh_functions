@@ -8,222 +8,234 @@ function cmdnfo() {
   type $1 | grep "alias" && { echo -n "defined in: "; grep -rl "alias[ ]+$1=" ${HOME/}.zgen; }
 }
 
+# CONFIG EDIT FUNCTION
+# ====================
+function rcedit() {
+  [[ -z "$1" ]] && { "specify config file to edit"; return 1; }
+
+  case $1 in:
+    vi|vim) vim ~/.vimrc; break ;;
+    zsh) vim ~/.zshrc; break ;;
+    env|penv|aliases|functions|completions|keybindings) vim $MYZCONF/zsh_$1; break ;;
+    *) echo "unknown configuration" ;;
+  esac
+}
+
 # DIRECTORY BOOKMARKING FUNC
 # ==========================
-#original script found at: https://bbs.archlinux.org/viewtopic.php?id=93016
-#usage:
-#  source the file containing this function in your .bashrc
-#  add the following to your .bashrc if you want tab completion for the bookmark names
-#  complete -W "COMPREPLY" -o "nospace" "<function_name_or_alias>"
-
+# original script found at: https://bbs.archlinux.org/viewtopic.php?id=93016
+# usage:
+#   source this function in your .bashrc
+#   add the following to your .bashrc for arg completion:
+#   complete -W "COMPREPLY" -o "nospace" "<function_name_or_alias>"
 function bookmark() {
-    # TODO: extend to enable bookmarking of regular files as well.
-    # init: create bookmark db if not available
-    thisfuncname="$(basename $0)"
-    local BOOKMARK_DB=${HOME}/.bmarks.db
-    #local INI_FILE=${HOME}/.bmarks.ini
-    local INI_FILE=/var/tmp/.bmarks.ini
-    local CONF_FILE=${HOME}/.bmarks.conf
-    local ERRMSG="Bad query. usage: $thisfuncname [options] [args]. use $thisfuncname -h for help"
-    local NOTFOUND="no bookmark found with provided id or name"
-    local CMD MARK NAME ID UPDID CMDFLAGS RES HANDLEREXPR
-    #CMDFLAGS="-echo" # Turn this on for debugging
+  # TODO: extend to enable bookmarking of regular files as well.
+  # init: create bookmark db if not available
+  thisfuncname="$(basename $0)"
+  local BOOKMARK_DB=${HOME}/.bmarks.db
+  #local INI_FILE=${HOME}/.bmarks.ini
+  local INI_FILE=/var/tmp/.bmarks.ini
+  local CONF_FILE=${HOME}/.bmarks.conf
+  local ERRMSG="Bad query. usage: $thisfuncname [options] [args]. use $thisfuncname -h for help"
+  local NOTFOUND="no bookmark found with provided id or name"
+  local CMD MARK NAME ID UPDID CMDFLAGS RES HANDLEREXPR
+  #CMDFLAGS="-echo" # Turn this on for debugging
 
-    # initialize if needed, create db and conf files
-    sqlite3 $CMDFLAGS $BOOKMARK_DB "select * from bookmarks" >/dev/null 2>&1
-    [[ $? -ne 0 ]] && {
-        sqlite3 $CMDFLAGS $BOOKMARK_DB "create table bookmarks \
-                (id INTEGER, name TEXT, path TEXT, type TEXT, added_on DATE)";
-    }
-    [[ ! -f $CONF_FILE ]] && {
-        echo -ne "_MOPENHANDLER1=cd\n_MOPENHANDLER2=vim\_MOPENHANDLER3=ql" > $CONF_FILE
-    }
-    [[ ! -f $INI_FILE ]] && {
-        echo -ne ".header ON\n.mode column\n.width 3 20 60 16" > $INI_FILE;
-    }
+  # initialize if needed, create db and conf files
+  sqlite3 $CMDFLAGS $BOOKMARK_DB "select * from bookmarks" >/dev/null 2>&1
+  [[ $? -ne 0 ]] && {
+    sqlite3 $CMDFLAGS $BOOKMARK_DB "create table bookmarks \
+            (id INTEGER, name TEXT, path TEXT, type TEXT, added_on DATE)";
+  }
+  [[ ! -f $CONF_FILE ]] && {
+    echo -ne "_MOPENHANDLER1=cd\n_MOPENHANDLER2=vim\_MOPENHANDLER3=ql" > $CONF_FILE
+  }
+  [[ ! -f $INI_FILE ]] && {
+    echo -ne ".header ON\n.mode column\n.width 3 20 60 16" > $INI_FILE;
+  }
 
-    # this file defines how to open marks
-    source $CONF_FILE
+  # this file defines how to open marks
+  source $CONF_FILE
 
-    # scan args, default values if necessary
-    if [ -z "$*" ]; then CMD='LIST'; fi
-    while [ $# -gt 0 ]; do
-       case "$1" in
-       -h|--help)      CMD='HELP';   break;;
-       -i|--init)      CMD='INIT';   break;;
-       -l|--list)      CMD='LIST';   break;;
-       -p|--pop)       CMD='POP';    break;;
-       -q|--query)     CMD='QUERY';  shift; MARK=$1; break;;
-       -j|--jump)      CMD='JUMP';   shift; MARK=$1; break;;
-       -a|--add|+)     CMD='ADD';    shift; MARK=$1; shift; NAME=$1;  break;;
-       -r|--reorder)   CMD='ORD';    shift; MARK=$1; shift; UPDID=$1; break;;
-       -u|--update)    CMD='UPD';    shift; MARK=$1; shift; NAME=$1;  shift; UPDID=$1; break;;
-       -d|--delete|-)  CMD='DEL';    shift; MARK=$1; break;;
-       -f|--flush)     CMD='FLUSH';  break;;
-        *)             CMD='JUMP'; MARK=$1; break;;
-       esac
-    done
-
-    # exec command
-    case $CMD in
-       HELP)
-           echo "USAGE:"
-           echo "  $thisfuncname [-s | --switch] [<path>] [name]"
-           echo "  Where [path] is a directory, [name] an alphanumeric string"
-           echo "  When no arguments are provided, will list current bookmarks"
-           echo "  When argument is provided without a switch, attempt to jump to that item"
-           echo "  Switches are: [h]elp, [l]ist, [q]uery, [j]ump, [a]dd, [d]elete, [f]lush"
-           echo "EXAMPLES:"
-           echo "  List all bookmarks:                             $thisfuncname or $thisfuncname -l"
-           echo "  Bookmark the directory /path:                   $thisfuncname --add /path"
-           echo "  Bookmark current directory with name 'curr':    $thisfuncname -a . curr"
-           echo "  Update existing mark with index 1:              $thisfuncname -u /newpath newname 1"
-           echo "  Query path bookmark at index 2 points to:       $thisfuncname -q 2"
-           echo "  Query path bookmark with name 'curr' points to: $thisfuncname -q curr"
-           echo "  Query path of last bookmark:                    $thisfuncname -q"
-           echo "  Delete bookmark at index 2:                     $thisfuncname -d 2"
-           echo "  Delete bookmark with name 'curr':               $thisfuncname -d curr"
-           echo "  query and delete most recent bookmark:          $thisfuncname -p"
-           echo "  query and delete bookmark at index 3:           $thisfuncname -p 3"
-           echo "  Delete all bookmarks:                           $thisfuncname --flush"
-           echo "  Go to bookmark at index 1:                      $thisfuncname --jump 1"
-           echo "  Go to bookmark named 'curr':                    $thisfuncname -j curr"
-           echo "  Go to last bookmarked dir:                      $thisfuncname -j"
-       ;;
-       INIT)
-           return #FIXME: implement this
-           # init: compile list of current tabs for tab completion
-           COMPREPLY=()
-           COMPREPLY=$(grep -o '^\<\w*\>' $BOOKMARK_DB | tr "\\n" " ")
-           complete -W "$COMPREPLY" -o "nospace" "${MY_BM_ALIAS:-bookmark}"
-       ;;
-       LIST)
-          local SQL="select id, name, case when length(path) > 60 then \"...\" || \
-                     substr(path, length(path)+1, -57) else path end path, \
-                     strftime('%Y-%m-%d %H:%M', added_on) added_on from bookmarks;"
-          sqlite3 $CMDFLAGS -init $INI_FILE $BOOKMARK_DB "$SQL" 2> /dev/null
-       ;;
-       QUERY)
-           if [ ! -z "$MARK" ]; then
-              if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
-              elif [[ "$MARK" =~ ^-$ ]]; then ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks")
-              else ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""); fi
-           else
-               echo "bad query: missing name or index"
-               return 1
-           fi
-
-           # make sure ID is not empty before querying DB
-           [ ! -z "$ID" ] || ID=-1
-           RES=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select path from bookmarks where id=$ID")
-           if [ ! -z "$RES" ]; then echo "$RES";
-           else return 1; fi
-       ;;
-       JUMP)
-           # check for parameter
-           if [ ! -z "$MARK" ]; then
-              if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
-              elif [[ "$MARK" =~ ^-$ ]]; then ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks")
-              else ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""); fi
-           else
-               echo "bad query: missing name or index"
-               return 1
-           fi
-
-           # read mark from db
-           RES=$(sqlite3 $CMDFLAGS -separator ',' $BOOKMARK_DB "select type, path from bookmarks where id=$ID")
-           if [ ! -z "$RES" ]; then
-               HANDLEREXPR="_MOPENHANDLER${RES}"
-               HANDLEREXPR=${HANDLEREXPR/,/ }
-               eval $"$HANDLEREXPR" # open file with appropriate handler
-           else echo "$NOTFOUND"; return 1; fi
-       ;;
-       FLUSH)
-           read -p "really remove all bookmarks? [y/n]: " CONFIRM
-           if [ ! "y" = "$CONFIRM" ]; then return; fi
-           sqlite3 $CMDFLAGS $BOOKMARK_DB "delete from bookmarks"
-           echo "--> All bookmarks removed"
-       ;;
-       ADD)
-           # FIXME: allow adding of other types of files. use file -I to determine file type
-           if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not added"; return 1; fi
-           if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not added"; return 1; fi
-
-           MARK=`greadlink -f "$MARK"`
-           if [ ! -z "$NAME" ]; then ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`; fi
-
-           if [ ! -z "$ID" -a ! "-1" = "$ID" ]; then
-               read -p "bookmark [$NAME] exists. update it? [y/n]: " CONFIRM
-               if [ ! "y" = "$CONFIRM" ]; then return; fi
-               sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", added_on=datetime('now') where id=$ID"
-           else
-              local NEXTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks"`
-              NEXTID=$(($NEXTID + 1))
-              sqlite3 $CMDFLAGS $BOOKMARK_DB "insert into bookmarks(id, name, path, type, added_on) \
-                                    values($NEXTID, \"$NAME\", \"$MARK\", "1", datetime('now'))"
-           fi
-
-           echo "--> bookmarked \"$MARK\""
-       ;;
-       ORD)
-           # TODO: update set id=-1 where id=me; update set id=id-1 where id < newme;
-           # TODO: update set id=id+1 where id >= newme; set myid = newme; update set id=newme where id=-1
-
-           #if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not updated"; return 1; fi
-           #if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
-           #if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
-
-           #MARK=`greadlink -f "$MARK"`
-           #local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
-           #local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
-
-           #if [ -z "$EXISTID" ]; then echo "$NOTFOUND"; return 1; fi
-           #if [ ! -z "$UNIQUENAME" ]; then echo "name already used. choose a different name"; return 1; fi
-           #sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", name=\"$NAME\", \
-                                 #added_on=datetime('now') where id=$UPDID"
-           #echo "--> bookmarked \"$MARK\""
-       ;;
-       UPD)
-           # FIXME: allow adding of other types of files. use file -I to determine file type
-           if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not updated"; return 1; fi
-           if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
-           if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
-
-           MARK=`greadlink -f "$MARK"`
-           local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
-           local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
-
-           if [ -z "$EXISTID" ]; then echo "$NOTFOUND"; return 1; fi
-           if [ ! -z "$UNIQUENAME" ]; then echo "name already used. choose a different name"; return 1; fi
-           sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", name=\"$NAME\", \
-                                 added_on=datetime('now') where id=$UPDID"
-           echo "--> bookmarked \"$MARK\""
-       ;;
-       DEL)
-           # use ID of last element if no param provided, else get ID using id or name provided
-           if [ -z "$MARK" ]; then echo "$ERRMSG"; return 1; fi
-           if [ "-" = "$MARK" ]; then
-              ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks"`
-           else
-              if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
-              else ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""`; fi
-           fi
-
-           # remove and reorder keys upon deletion
-           if [ -z "$ID" ]; then echo "$NOTFOUND"; return; fi
-           local REMDATA=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select path from bookmarks where id=$ID"`
-           sqlite3 $CMDFLAGS $BOOKMARK_DB "delete from bookmarks where id=$ID"
-           sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set id=id-1 where id > $ID" 
-           echo "removed bookmark \"$REMDATA\""
-       ;;
-       POP)
-           RES=$($thisfuncname -q -)
-           $thisfuncname -d - > /dev/null
-           echo $RES
-       ;;
-       *)
-       ;;
+  # scan args, default values if necessary
+  if [ -z "$*" ]; then CMD='LIST'; fi
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    -h|--help)      CMD='HELP';   break;;
+    -i|--init)      CMD='INIT';   break;;
+    -l|--list)      CMD='LIST';   break;;
+    -p|--pop)       CMD='POP';    break;;
+    -q|--query)     CMD='QUERY';  shift; MARK=$1; break;;
+    -j|--jump)      CMD='JUMP';   shift; MARK=$1; break;;
+    -a|--add|+)     CMD='ADD';    shift; MARK=$1; shift; NAME=$1;  break;;
+    -r|--reorder)   CMD='ORD';    shift; MARK=$1; shift; UPDID=$1; break;;
+    -u|--update)    CMD='UPD';    shift; MARK=$1; shift; NAME=$1;  shift; UPDID=$1; break;;
+    -d|--delete|-)  CMD='DEL';    shift; MARK=$1; break;;
+    -f|--flush)     CMD='FLUSH';  break;;
+     *)             CMD='JUMP'; MARK=$1; break;;
     esac
+  done
+
+  # exec command
+  case $CMD in
+    HELP)
+      echo "USAGE:"
+      echo "  $thisfuncname [-s | --switch] [<path>] [name]"
+      echo "  Where [path] is a directory, [name] an alphanumeric string"
+      echo "  When no arguments are provided, will list current bookmarks"
+      echo "  When argument is provided without a switch, attempt to jump to that item"
+      echo "  Switches are: [h]elp, [l]ist, [q]uery, [j]ump, [a]dd, [d]elete, [f]lush"
+      echo "EXAMPLES:"
+      echo "  List all bookmarks:                             $thisfuncname or $thisfuncname -l"
+      echo "  Bookmark the directory /path:                   $thisfuncname --add /path"
+      echo "  Bookmark current directory with name 'curr':    $thisfuncname -a . curr"
+      echo "  Update existing mark with index 1:              $thisfuncname -u /newpath newname 1"
+      echo "  Query path bookmark at index 2 points to:       $thisfuncname -q 2"
+      echo "  Query path bookmark with name 'curr' points to: $thisfuncname -q curr"
+      echo "  Query path of last bookmark:                    $thisfuncname -q"
+      echo "  Delete bookmark at index 2:                     $thisfuncname -d 2"
+      echo "  Delete bookmark with name 'curr':               $thisfuncname -d curr"
+      echo "  query and delete most recent bookmark:          $thisfuncname -p"
+      echo "  query and delete bookmark at index 3:           $thisfuncname -p 3"
+      echo "  Delete all bookmarks:                           $thisfuncname --flush"
+      echo "  Go to bookmark at index 1:                      $thisfuncname --jump 1"
+      echo "  Go to bookmark named 'curr':                    $thisfuncname -j curr"
+      echo "  Go to last bookmarked dir:                      $thisfuncname -j"
+    ;;
+    INIT)
+      return #FIXME: implement this
+      # init: compile list of current tabs for tab completion
+      COMPREPLY=()
+      COMPREPLY=$(grep -o '^\<\w*\>' $BOOKMARK_DB | tr "\\n" " ")
+      complete -W "$COMPREPLY" -o "nospace" "${MY_BM_ALIAS:-bookmark}"
+    ;;
+    LIST)
+     local SQL="select id, name, case when length(path) > 60 then \"...\" || \
+                substr(path, length(path)+1, -57) else path end path, \
+                strftime('%Y-%m-%d %H:%M', added_on) added_on from bookmarks;"
+     sqlite3 $CMDFLAGS -init $INI_FILE $BOOKMARK_DB "$SQL" 2> /dev/null
+    ;;
+    QUERY)
+      if [ ! -z "$MARK" ]; then
+        if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
+        elif [[ "$MARK" =~ ^-$ ]]; then ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks")
+        else ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""); fi
+      else
+        echo "bad query: missing name or index"
+        return 1
+      fi
+
+      # make sure ID is not empty before querying DB
+      [ ! -z "$ID" ] || ID=-1
+      RES=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select path from bookmarks where id=$ID")
+      if [ ! -z "$RES" ]; then echo "$RES";
+      else return 1; fi
+    ;;
+    JUMP)
+      # check for parameter
+      if [ ! -z "$MARK" ]; then
+        if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
+        elif [[ "$MARK" =~ ^-$ ]]; then ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks")
+        else ID=$(sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""); fi
+      else
+        echo "bad query: missing name or index"
+        return 1
+      fi
+
+      # read mark from db
+      RES=$(sqlite3 $CMDFLAGS -separator ',' $BOOKMARK_DB "select type, path from bookmarks where id=$ID")
+      if [ ! -z "$RES" ]; then
+        HANDLEREXPR="_MOPENHANDLER${RES}"
+        HANDLEREXPR=${HANDLEREXPR/,/ }
+        eval $"$HANDLEREXPR" # open file with appropriate handler
+      else echo "$NOTFOUND"; return 1; fi
+    ;;
+    FLUSH)
+      read -p "really remove all bookmarks? [y/n]: " CONFIRM
+      if [ ! "y" = "$CONFIRM" ]; then return; fi
+      sqlite3 $CMDFLAGS $BOOKMARK_DB "delete from bookmarks"
+      echo "--> All bookmarks removed"
+    ;;
+    ADD)
+      # FIXME: allow adding of other types of files. use file -I to determine file type
+      if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not added"; return 1; fi
+      if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not added"; return 1; fi
+
+      MARK=`greadlink -f "$MARK"`
+      if [ ! -z "$NAME" ]; then ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`; fi
+
+      if [ ! -z "$ID" -a ! "-1" = "$ID" ]; then
+        read -p "bookmark [$NAME] exists. update it? [y/n]: " CONFIRM
+        if [ ! "y" = "$CONFIRM" ]; then return; fi
+        sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", added_on=datetime('now') where id=$ID"
+      else
+        local NEXTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks"`
+        NEXTID=$(($NEXTID + 1))
+        sqlite3 $CMDFLAGS $BOOKMARK_DB "insert into bookmarks(id, name, path, type, added_on) \
+                              values($NEXTID, \"$NAME\", \"$MARK\", "1", datetime('now'))"
+      fi
+
+      echo "--> bookmarked \"$MARK\""
+    ;;
+    ORD)
+      # TODO: update set id=-1 where id=me; update set id=id-1 where id < newme;
+      # TODO: update set id=id+1 where id >= newme; set myid = newme; update set id=newme where id=-1
+
+      #if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not updated"; return 1; fi
+      #if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
+      #if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
+
+      #MARK=`greadlink -f "$MARK"`
+      #local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
+      #local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
+
+      #if [ -z "$EXISTID" ]; then echo "$NOTFOUND"; return 1; fi
+      #if [ ! -z "$UNIQUENAME" ]; then echo "name already used. choose a different name"; return 1; fi
+      #sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", name=\"$NAME\", \
+                            #added_on=datetime('now') where id=$UPDID"
+      #echo "--> bookmarked \"$MARK\""
+    ;;
+    UPD)
+      # FIXME: allow adding of other types of files. use file -I to determine file type
+      if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not updated"; return 1; fi
+      if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
+      if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
+
+      MARK=`greadlink -f "$MARK"`
+      local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
+      local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
+
+      if [ -z "$EXISTID" ]; then echo "$NOTFOUND"; return 1; fi
+      if [ ! -z "$UNIQUENAME" ]; then echo "name already used. choose a different name"; return 1; fi
+      sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set path=\"$MARK\", name=\"$NAME\", \
+                            added_on=datetime('now') where id=$UPDID"
+      echo "--> bookmarked \"$MARK\""
+    ;;
+    DEL)
+      # use ID of last element if no param provided, else get ID using id or name provided
+      if [ -z "$MARK" ]; then echo "$ERRMSG"; return 1; fi
+      if [ "-" = "$MARK" ]; then
+         ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks"`
+      else
+         if [[ "$MARK" =~ ^[0-9]+$ ]]; then ID=$MARK
+         else ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$MARK\""`; fi
+      fi
+
+      # remove and reorder keys upon deletion
+      if [ -z "$ID" ]; then echo "$NOTFOUND"; return; fi
+      local REMDATA=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select path from bookmarks where id=$ID"`
+      sqlite3 $CMDFLAGS $BOOKMARK_DB "delete from bookmarks where id=$ID"
+      sqlite3 $CMDFLAGS $BOOKMARK_DB "update bookmarks set id=id-1 where id > $ID" 
+      echo "removed bookmark \"$REMDATA\""
+    ;;
+    POP)
+      RES=$($thisfuncname -q -)
+      $thisfuncname -d - > /dev/null
+      echo $RES
+    ;;
+    *)
+    ;;
+  esac
 }
 
 # GET RANDOM POST FROM COMMANDLINEFU.COM
@@ -341,15 +353,6 @@ function vsession() {
         echo -ne $slist
     fi
 }
-
-# COMPLETION FUNCTIONS
-# ====================
-compdef _dirsbookmarkscpl cd
-compdef _bookmarkcpl bookmark
-compdef _listsessions vsession
-function _dirsbookmarkscpl { _cd || _bookmarkcpl; } 
-function _bookmarkcpl { _values $(echo 'description:bookmarks'; sqlite3 ~/.bmarks.db 'select name from bookmarks'); }
-function _listsessions { _values $(echo 'description:vim_sessions'; ls ~/.vim/sessions | egrep .vim$ | while read -r; do basename $REPLY .vim; done); }
 
 # ============================================================================================================================
 # misc one liners
