@@ -1,6 +1,9 @@
+#!/usr/bin/env zsh
+
+function _dirsbookmarkscpl() { _cd || _bookmarkcpl; } 
+function _bookmarkcpl() { _values $(echo 'description:bookmarks'; sqlite3 ~/.bmarks.db 'select name from bookmarks'); }
+function _listsessions() { _values $(echo 'description:vim_sessions'; ls ~/.vim/sessions | egrep .vim$ | while read -r; do basename $REPLY .vim; done); }
+
 compdef _dirsbookmarkscpl cd
 compdef _bookmarkcpl bookmark
 compdef _listsessions vsession
-function _dirsbookmarkscpl { _cd || _bookmarkcpl; } 
-function _bookmarkcpl { _values $(echo 'description:bookmarks'; sqlite3 ~/.bmarks.db 'select name from bookmarks'); }
-function _listsessions { _values $(echo 'description:vim_sessions'; ls ~/.vim/sessions | egrep .vim$ | while read -r; do basename $REPLY .vim; done); }

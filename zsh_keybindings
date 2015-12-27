@@ -1,7 +1,9 @@
+#!/usr/bin/env zsh
+
 if [[ -f '/usr/local/bin/fzf' ]]; then
-  export FZF_COMPLETION_TRIGGER=''
-  bindkey '^T' fzf-completion
-  bindkey '^I' fzf_default_completion
+  #export FZF_COMPLETION_TRIGGER=''
+  #bindkey '^T' fzf-completion
+  #bindkey '^I' fzf_default_completion
 fi
 
 zmodload zsh/terminfo

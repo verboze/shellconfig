@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 # TODO: break these into modular plugins, osx/linux
-#unalias -m '*' # clear all aliases, redefine my own ones
+unalias -m '*' # clear all aliases, redefine my own
 
 # OSX only aliases
 # ===================
@@ -90,7 +90,6 @@ alias gitadd='pushd .; cdprojroot; git add -A; popd'
 alias gitunstage='git rm --cached'
 alias gitcommit='pushd .; cdprojroot; git commit -a; popd'
 alias gitamend='pushd .; cdprojroot; git commit -a --amend; popd'
-function gitpush() { git fetch; local MYSTAT=$(git --no-pager log HEAD..origin/master --oneline); [[ ! -z $MYSTAT ]] && { echo "changes detected upstream. rebase/merge first"; return 1; }; git push; }
 alias gitkeeptheirs='git checkout --theirs'
 alias gitkeepmine='git checkout --ours'
 alias gitremote='git remote -v'
@@ -105,6 +104,7 @@ alias gitfetch='git fetch'
 alias gitundolastcommit='git reset --soft "HEAD^"'
 alias gitconfig='git config --list'
 alias bfg="java -jar ${HOME}/Scripts/bfg-1.12.7.jar"
+function gitpush() { git fetch; local MYSTAT=$(git --no-pager log HEAD..origin/master --oneline); [[ ! -z $MYSTAT ]] && { echo "changes detected upstream. rebase/merge first"; return 1; }; git push; }
 function gitk { /usr/local/bin/gitk "$@" 2>/dev/null &; }
 function gitreset { 
     local BAKNAME BRANCH COMMIT TAG
@@ -136,7 +136,7 @@ alias ll='ls -lXA'
 alias llh='ls -hl'
 alias la='ls -A'
 alias lt='ls -ltr'
-alias lla='ls -al'
+alias lta='ls -ltra'
 alias lsv='ls -l /Volumes'
 alias lss='ll -GF | sort -dfr'
 alias ltree='tree --dirsfirst'

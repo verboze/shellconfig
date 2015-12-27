@@ -23,9 +23,12 @@ funciton zgen-loadconfig() {
   }
 
   # prezto options
+  if [[ $(uname -s) == "Linux" ]]
+    then  zgen prezto prompt theme 'peepcode' '$'
+    else zgen prezto prompt theme 'pure'
+  fi
   zgen prezto editor key-bindings 'emacs'
   zgen prezto tmux:auto-start local 'yes'
-  zgen prezto prompt theme 'pure'
   zgen prezto '*:*' color 'yes'
 
   # prezto and plugins
@@ -33,7 +36,6 @@ funciton zgen-loadconfig() {
   #zgen oh-my-zsh pip
   #zgen oh-my-zsh brew
   zgen prezto archive
-  zgen prezto git
   zgen prezto osx
   zgen prezto gnu-utility
   zgen prezto python
@@ -47,22 +49,18 @@ funciton zgen-loadconfig() {
   # other zsh plugins
   zgen load TBSliver/zsh-plugin-colored-man
   zgen load mafredri/zsh-async
-  #zgen load junegunn/fzf shell
   zgen load junegunn/fzf
   zgen load skx/sysadmin-util
   zgen load chrissicool/zsh-256color
-  #zgen load zsh-users/zsh-completions src
   zgen load zsh-users/zsh-completions
   zgen load RobSis/zsh-completion-generator
   zgen load rimraf/k
   zgen load StackExchange/blackbox
+  zgen load verboze/shellconfig # my own configs
 
   # highlighting and suggestions
   zgen load zsh-users/zsh-syntax-highlighting
   #zgen load tarruda/zsh-autosuggestions # really want this but conflicts with history
-
-  # my own configs last
-  zgen load verboze/shellconfig
 
   zgen save
 }
@@ -72,6 +70,14 @@ if ! zgen saved; then zgen-loadconfig; fi
 
 # hook direnv if present
 [[ 0 == $(which direnv >/dev/null 2>&1; echo $?) ]] && eval "$(direnv hook zsh)"
+
+# source my own configurations last
+[[ -s "$MYZCONF/zsh_env" ]] && source "$MYZCONF/zsh_env"
+[[ -s "$MYZCONF/zsh_penv" ]] && source "$MYZCONF/zsh_penv"
+[[ -s "$MYZCONF/zsh_aliases" ]] && source "$MYZCONF/zsh_aliases"
+[[ -s "$MYZCONF/zsh_functions" ]] && source "$MYZCONF/zsh_functions"
+[[ -s "$MYZCONF/zsh_completions" ]] && source "$MYZCONF/zsh_completions"
+[[ -s "$MYZCONF/zsh_keybindings" ]] && source "$MYZCONF/zsh_keybindings"
 
 # load fishell-like completion suggestions
 #function zle-line-init() { zle autosuggest-start }
