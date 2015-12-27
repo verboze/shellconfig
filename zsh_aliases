@@ -34,7 +34,6 @@ fi
 # Linux only aliases
 # ===================
 if [[ "$(uname -s)" == "Linux" ]]; then
-  alias l="ls -laF"
   alias gls='/bin/ls'
   alias grep='grep --color'
 fi
@@ -132,7 +131,8 @@ alias rm='safe-rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 alias ls='gls --color --group-directories-first'
-alias ll='ls -lX'
+alias l='ls -lX'
+alias ll='ls -lXA'
 alias llh='ls -hl'
 alias la='ls -A'
 alias lt='ls -ltr'

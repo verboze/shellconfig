@@ -7,7 +7,6 @@ export MYZCONF=$ZGENHOME/verboze/shellconfig-master
 
 [[ ! -d $ZGENHOME ]] && { 
   echo "downloading zgen..."
-  #git clone https://github.com/tarjoilija/zgen $ZGENHOME;
   git clone https://github.com/verboze/zgen $ZGENHOME;
 }
 
@@ -67,17 +66,6 @@ funciton zgen-loadconfig() {
 
   zgen save
 }
-
-#function zgen-uninstall() {
-  #local resp
-  #vared -p 'Unload all zsh plugins? All local changes will be lost (y/n): ' -c resp
-
-  #if [[ "$resp" =~ [yY] ]]; then
-    #rm -rf ${HOME}/{.zgen,.zprezto}
-    #rm -rf ${HOME}/.zcompdump*
-    #echo "Plugins unloaded. they will be reloaded when .zshrc is sourced next"
-  #fi
-#}
 
 # load plugins if not already laoded
 if ! zgen saved; then zgen-loadconfig; fi
