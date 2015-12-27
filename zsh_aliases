@@ -1,68 +1,45 @@
+#!/usr/bin/env zsh
+
+# TODO: break these into modular plugins, osx/linux
 #unalias -m '*' # clear all aliases, redefine my own ones
 
-# OSX specific aliases
+# OSX only aliases
+# ===================
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  alias eject="diskutil eject"
-  alias flushdns="dscacheutil -flushcache"
-
-  # `wifi on` to turn wifi on, and `wifi off` to turn it off
-  alias wifi="networksetup -setairportpower $(networksetup -listallhardwareports | grep -A 2 'Hardware Port: Wi-Fi' | grep 'Device:' | awk '{print $2}')"
-
-  # These assume you've installed memcached, mysql & postgresql with brew
-  #alias memcached_load="launchctl load -w /usr/local/Cellar/memcached/1.4.13/homebrew.mxcl.memcached.plist"
-  #alias memcached_unload="launchctl unload -w /usr/local/Cellar/memcached/1.4.13/homebrew.mxcl.memcached.plist"
-  #alias mysql_load="launchctl load -w /usr/local/Cellar/mysql/5.5.20/homebrew.mxcl.mysql.plist"
-  #alias mysql_unload="launchctl unload -w /usr/local/Cellar/mysql/5.5.20/homebrew.mxcl.mysql.plist"
-  #alias postgres_load="launchctl load -w /usr/local/Cellar/postgresql/9.1.3/homebrew.mxcl.postgresql.plist"
-  #alias postgres_unload="launchctl unload -w /usr/local/Cellar/postgresql/9.1.3/homebrew.mxcl.postgresql.plist"
-
-  # QuickLook stuff
-  alias ql="qlmanage -p"
-  alias quicklook="qlmanage -p"
-
-  # Manually remove a downloaded app or file from the quarantine
-  function unquarantine() {
-    for attribute in com.apple.metadata:kMDItemDownloadedDate \
-      com.apple.metadata:kMDItemWhereFroms \
-      com.apple.quarantine; do
-      xattr -r -d "$attribute" "$@"
-    done
-  }
-
-  function pledit() { # plist editor.
-    if [ $# -ne 1 ]; then
-      echo -e "pledit: Edit Apple plist file\nusage: pledit plist_filename"
-    else
-      sudo plutil -convert xml1 "${1}"; # convert the binary file to xml
-      sudo ${EDITOR} "${1}"; # use the default editor
-      sudo plutil -convert binary1 "${1}" # convert it back to binary
-    fi
-  }
-
-  # Sound.
-  alias stfu="osascript -e 'set volume output muted true'"
-  alias mute="osascript -e 'set volume output muted true'"
-  alias unmute="osascript -e 'set volume output muted false'"
-
-  # Airplay sometimes craps out, add helper to kick it
-  function fix_airplay {
-    sudo kill $(ps -ax | grep '/usr/sbin/coreaudiod' | awk '{print $1}')
-  }
-
   # use coreutils version of the following programs for portability
   alias readlink='greadlink'
   alias sed='gsed'
-  alias grep='ggrep'
+  alias grep='ggrep --color'
+
+  # osx-specific functions
+  alias macvim='mvim'
+  alias gvim='mvim'
+  alias gview='mvim -R'
+  alias browse='open -a Finder $1'
+  alias growl='growlnotify -m'
+  alias getfileinfo='GetFileInfo' # osx cmd
+  alias micmute="osascript -e 'set volume input muted true'"
+  alias micunmute="osascript -e 'set volume input muted false'"
+  alias volmute="osascript -e 'set volume output muted true'"
+  alias volunmute="osascript -e 'set volume output muted false'"
+  alias suspend='/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend'
+  alias eject='diskutil eject'
+  alias unmount='diskutil unmount "$@"'
+  alias flushdnscache='dscacheutil -flushcache'
+  alias cask='brew-cask'
+  alias preview='ql'
 fi 
 
-# Linux specific aliases
+# Linux only aliases
+# ===================
 if [[ "$(uname -s)" == "Linux" ]]; then
-  alias l-d="ls -lFad"
   alias l="ls -laF"
-  alias ll="ls -lFa | TERM=vt100 less"
+  alias gls='/bin/ls'
+  alias grep='grep --color'
 fi
 
 # vim config
+# ===================
 if [[ -x /usr/local/bin/vim ]]; then
     # brew-installed vim
     alias vim="/usr/local/bin/vim"
@@ -79,26 +56,196 @@ else
 fi
 export VISUAL=${EDITOR}
 
-# Clean up files that have the wrong line endings
+# GIT Related
+# ===================
+alias gitstat='clear && git status'
+alias gitsavechanges='git stash'
+alias gitpopchanges='git stash pop'
+
+alias cdprojroot='cd $(git rev-parse --show-toplevel) || echo "not a git project directory"'
+alias gitorigin='git remote show origin'
+alias gitaddorigin='git remote add origin'
+alias gitloggraph='git log --oneline --graph --decorate --all'
+alias gitshow='git show'
+alias gl='gitlog'
+alias gs='gitstat'
+alias gitdiff='git diff HEAD~1'
+alias gitdifff='git diff'
+alias gitcheckout='git checkout'
+alias gitcherrypick='git cherry-pick'
+alias gitmerge='git mergetool'
+alias gld='gitlogdetails'
+alias glg='gitloggraph'
+alias _gitflog='git --no-pager log -n 10 --pretty=format:"%C(bold red)%h%Creset %C(bold white)%<(15,trunc)%aN%Creset %C(blue)%d%Creset %s"; echo -e "\n"'
+alias gitlog='echo -n "HEAD: "; gitloglast; _gitflog; echo $(seq  -f "-" -s "" 75); sed "/^\s*\(\s*\|Your branch is up-to.*\|On branch.*\|Changes.*\|no changes.*\|(.*)\)$/d" <<< $(git -c color.status=always status)'
+alias gitlogdetails='git log --stat --pretty=fuller'
+alias gitlogstat='git log --name-status'
+alias gitloglast='git --no-pager log --stat -n 1'
+alias gitlogmychanges='git log --author="$(git config user.name)" -n 15'
+alias gitlogfileschanged='git --no-pager show --stat --oneline'
+alias gitlogsummary='git log --pretty=oneline --abbrev-commit'
+alias gitwhatadded='git log --diff-filter=A --'
+alias gitwhatdeleted='git log --diff-filter=D --'
+alias gitadd='pushd .; cdprojroot; git add -A; popd'
+alias gitunstage='git rm --cached'
+alias gitcommit='pushd .; cdprojroot; git commit -a; popd'
+alias gitamend='pushd .; cdprojroot; git commit -a --amend; popd'
+alias gitpush='git push'
+alias gitkeeptheirs='git checkout --theirs'
+alias gitkeepmine='git checkout --ours'
+alias gitremote='git remote -v'
+alias gitrebase='git rebase'
+alias gitrebaseskip='git rebase --skip'
+alias gitrebasecontinue='git rebase --continue'
+alias gitrebaseabort='git rebase --abort'
+alias gitbranch='git branch -vv'
+alias gittags='git tag -l'
+alias gittagscontains='git tag --contains'
+alias gitfetch='git fetch'
+alias gitundolastcommit='git reset --soft "HEAD^"'
+alias gitconfig='git config --list'
+alias bfg="java -jar ${HOME}/Scripts/bfg-1.12.7.jar"
+function gitk { /usr/local/bin/gitk "$@" 2>/dev/null &; }
+function gitreset { 
+    local BAKNAME BRANCH COMMIT TAG
+    BRANCH=$(git branch | sed -n 's/[*] //p')
+    [[ -z "$1" ]]   && { echo "provide a tag"; return 1; } || { TAG=$1; }
+    [[ ! -z "$2" ]] && { COMMIT="$2"; } || { COMMIT="HEAD"; }
+    BAKNAME="__bak_${(L)BRANCH}_${(L)TAG}_$(date '+%Y%m%d%H%M%S')"
+    git branch ${BAKNAME}
+    git reset --hard $TAG
+    gitlog
+    echo $(seq  -f "-" -s "" 75)
+    gitbranch | grep --color=always -B 2 -A 3 ${BAKNAME}
+}
+function bak { [[ ! -f "$1" ]] && { echo "no such file: $1"; return 1; }; cp ${1} ${1}.bak; }
+
+# COREUTILS
+# ===================
+alias ..="cd .."
+alias ...="cd ../.."
+alias vs='vsession'
+alias cleanvimswap="rm -f $HOME/.vim/swap/*.swp"
+alias XXX='exit'
+alias rm='safe-rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+alias ls='gls --color --group-directories-first'
+alias ll='ls -lX'
+alias llh='ls -hl'
+alias la='ls -A'
+alias lt='ls -ltr'
+alias lla='ls -al'
+alias lsv='ls -l /Volumes'
+alias lss='ll -GF | sort -dfr'
+alias ltree='tree --dirsfirst'
+alias dirs='dirs -v'
+alias rl='readlink -f'
+alias rla='ls -d -1 $PWD/**/*'
+alias less='less -r'
+alias ack='ag'
+alias zh="fc -l -d -D" # Dump the last 20 history entries
 alias mac2unix="tr '\015' '\012'"
 alias unix2mac="tr '\012' '\015'"
-
-# A couple of different external IP lookups depending on which is down.
-alias external_ip="curl -s icanhazip.com"
-alias myip="dig +short myip.opendns.com @resolver1.opendns.com"
-
-# SSH stuff
-# Pass our credentials by default
-alias ssh_unkeyed="/usr/bin/ssh"
-alias scp_no_hostchecks="scp -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-alias ssh_no_hostchecks="ssh -A -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+function highlight { ggrep --color=always -iE "$@|$"; }
 
 # Strip color codes from commands that insist on spewing them so we can
 # pipe them into files cleanly
 alias stripcolors='sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"'
 
-# Dump the last 20 history entries
-alias zh="fc -l -d -D"
+alias lsz='unzip -l'
+alias lsg='ll | grep -i'
 
-alias ..="cd .."
-alias ...="cd ../.."
+# SERVERS AND SUCH
+# ===================
+alias jasmine="jasmine-node --verbose"
+alias sql='python2.7 -c "import apsw;apsw.main()" -column -header'
+alias mysqlup='/usr/local/bin/mysql.server start'
+alias mysqldown='/usr/local/bin/mysql.server stop'
+alias sqlstatus='/usr/local/bin/mysql.server status'
+alias mongoup="launchctl start homebrew.mxcl.mongodb"
+alias mongodown="launchctl stop homebrew.mxcl.mongodb"
+alias dynamolocal="pushd .; cd ${HOME}/Projects/AWS/_DYNAMODB_LOCAL_RUNTIME; \
+      echo 'access shell via: http://localhost:8000/shell/'; java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb; popd"
+
+# MISC ALIASES
+# ===================
+alias m='bookmark'
+alias ma='bookmark -a'
+alias md='bookmark -d'
+alias mu='bookmark -u'
+alias mj='bookmark -j'
+alias mp='bookmark -p'
+alias mq='bookmark -q'
+
+alias cdp='cd ~/Projects'
+alias cdd="cd $HOME/Downloads"
+alias cdwork="cd $HOME/WORK"
+alias cleanviswap='rm -f $HOME/.vim/swap'
+
+alias rb='ruby'
+alias vless='/usr/share/vim/vim72/macros/less.sh' # TODO: broken. look into https://github.com/rkitover/vimpager
+
+alias rpwgen='pwgen -N 6 -n 20 -B -A'
+alias spwgen='pwgen -N 6 -n 20 -s'
+alias xpwgen='pwgen -N 6 -n 20 -s -y'
+
+alias convertallacc='for i in *.aac; do aac2mp3 "$i" "$(basename $i .aac).mp3"; done'
+alias rvminit='source ~/.rvm/scripts/rvm'
+alias pb="/usr/local/bin/pb --apikey '$PBAPIKEY'"
+alias commandlinefu='clfu'
+alias clifu='clfu'
+alias mplayer='cmus'
+
+alias shelltips="vim $HOME/Dropbox/_shell_tips.sh"
+alias vimtips="vim $HOME/Dropbox/_vim_tips.vim"
+alias dbtips="vim $HOME/Dropbox/_db_tips.sql"
+alias motd='fortune'
+
+# SYSTEM/NETWORK
+# ===================
+alias service="lunchy"
+alias inetdown='sudo ifconfig en0 down'
+alias inetup='sudo ifconfig en0 up'
+alias shutdown='sudo shutdown'
+alias lshosts='cat ~/.ssh/config | grep -i "host [a-z0-9_].*"'
+alias ssh_unkeyed="/usr/bin/ssh" # Pass our credentials by default
+alias scp_no_hostchecks="scp -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+alias ssh_no_hostchecks="ssh -A -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+alias ipinfo="inetstat"
+
+
+# PYTHON
+# ===================
+alias py='ipython'
+alias pi='python2.7'
+alias py26='python2.6'
+alias py27='python2.7'
+alias py35='python3.5'
+alias pynote='ipython notebook'
+alias cleanpyc="find . -type f -name \"*.pyc\" -exec rm -f {} \;"
+alias python='python2.7' # default python for my uses
+alias pip='pip2.7' # default pip for my uses
+
+# CONFIGURATION FILES
+# ===================
+alias vrcedit="vim $HOME/.vimrc"
+alias zrcedit='vim ~/.zshrc'
+alias omzrcedit='vim ~/.omzsh/oh-my-zsh.sh'
+alias rcedit='vim ~/.omzsh/myzshconfig'
+alias rcupdate='. ~/.zshrc'
+alias funcedit="vim $ZSH_CUSTOM/myfunctions.sh"
+alias wtfuncedit="vim $HOME/Scripts/wt_functions.sh"
+
+# ANDROID
+# ===================
+alias adbconnect='adb connect'
+alias adbshell='adb shell'
+alias adbpush='adb push'
+alias adbpull='adb pull'
+alias adbdevices='adb devices'
+alias adbdisconnect='adb disconnect'
+alias adbinstall='adb install -r app/build/outputs/apk/app-debug-unaligned.apk'
+alias adbrunapp='adb shell am start -n com.example.android.sunshine.app/com.example.android.sunshine.app.MainActivity'
+alias gwbuild='./gradlew --stacktrace assembleDebug'
+alias buildproj="adbconnect 192.168.1.2:5555 && gwbuild && adbrunapp && adb logcat ActivityManager:I SUNSHINE:V \*:S"

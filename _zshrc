@@ -25,28 +25,26 @@ funciton zgen-loadconfig() {
   # prezto options
   zgen prezto editor key-bindings 'emacs'
   zgen prezto tmux:auto-start local 'yes'
-  #zgen prezto '*:*' case-sensitive 'yes'
   zgen prezto prompt theme 'pure'
   zgen prezto '*:*' color 'yes'
 
   # prezto and plugins
   zgen prezto
-  #zgen prezto pip
-  #zgen prezto brew
+  #zgen oh-my-zsh pip
+  #zgen oh-my-zsh brew
+  zgen prezto archive
   zgen prezto git
   zgen prezto osx
+  zgen prezto gnu-utility
   zgen prezto python
   zgen prezto rsync
   zgen prezto screen
-  #zgen prezto command-not-found
   zgen prezto tmux
   zgen prezto fasd
   zgen prezto history-substring-search
   zgen prezto syntax-highlighting
 
   # other zsh plugins
-  #zgen load djui/alias-tips
-  #zgen load caarlos0/zsh-git-sync
   zgen load TBSliver/zsh-plugin-colored-man
   zgen load mafredri/zsh-async
   #zgen load junegunn/fzf shell
@@ -59,12 +57,12 @@ funciton zgen-loadconfig() {
   zgen load rimraf/k
   zgen load StackExchange/blackbox
 
-  # my own configs
-  zgen load verboze/shellconfig
-
-  # NOTE: keep these last. highlighting and suggestions
+  # highlighting and suggestions
   zgen load zsh-users/zsh-syntax-highlighting
   #zgen load tarruda/zsh-autosuggestions # really want this but conflicts with history
+
+  # my own configs last
+  zgen load verboze/shellconfig
 
   zgen save
 }
@@ -83,17 +81,13 @@ function zgen-uninstall() {
 # load plugins if not already laoded
 if ! zgen saved; then zgen-loadconfig; fi
 
-# env config
-export LESS='-R'
-export LESSOPEN='| /usr/local/bin/src-hilite-lesspipe.sh %s'
-
 # environment, aliases and utility functions
-[[ -s "$MYZCONF/zsh_env" ]] && source "$MYZCONF/zsh_env"
-[[ -s "$MYZCONF/zsh_penv" ]] && source "$MYZCONF/zsh_penv"
-[[ -s "$MYZCONF/zsh_aliases" ]] && source "$MYZCONF/zsh_aliases"
-[[ -s "$MYZCONF/zsh_functions" ]] && source "$MYZCONF/zsh_functions"
-[[ -s "$MYZCONF/zsh_completions" ]] && source "$MYZCONF/zsh_completions"
-[[ -s "$MYZCONF/zsh_keybindings" ]] && source "$MYZCONF/zsh_keybindings"
+#[[ -s "$MYZCONF/zsh_env" ]] && source "$MYZCONF/zsh_env"
+#[[ -s "$MYZCONF/zsh_penv" ]] && source "$MYZCONF/zsh_penv"
+#[[ -s "$MYZCONF/zsh_aliases" ]] && source "$MYZCONF/zsh_aliases"
+#[[ -s "$MYZCONF/zsh_functions" ]] && source "$MYZCONF/zsh_functions"
+#[[ -s "$MYZCONF/zsh_completions" ]] && source "$MYZCONF/zsh_completions"
+#[[ -s "$MYZCONF/zsh_keybindings" ]] && source "$MYZCONF/zsh_keybindings"
 
 # hook direnv if present
 [[ 0 == $(which direnv >/dev/null 2>&1; echo $?) ]] && eval "$(direnv hook zsh)"

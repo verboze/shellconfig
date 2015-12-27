@@ -1,6 +1,8 @@
-# pager configuration
+# misc env variables
 export LESS='-R'
 export LESSOPEN='| /usr/local/bin/src-hilite-lesspipe.sh %s'
+export GIT_EDITOR='vim'
+
 
 # change default ls colors
 export LS_COLORS="ow=01;34:di=00;34:ex=00;31"
@@ -25,7 +27,6 @@ for path_candidate in /usr/local/lib/androidsdk/tools:\
 do
   [[ -d ${path_candidate} ]] && export PATH=${PATH}:${path_candidate}
 done
-
 
 # history configuration
 setopt append_history
