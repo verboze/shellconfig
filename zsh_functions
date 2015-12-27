@@ -167,7 +167,7 @@ function bookmark() {
       if [ ! -d "$MARK" ]; then echo "\"$MARK\" is not a valid directory. not added"; return 1; fi
       if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not added"; return 1; fi
 
-      MARK=`greadlink -f "$MARK"`
+      MARK=`readlink -f "$MARK"`
       if [ ! -z "$NAME" ]; then ID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`; fi
 
       if [ ! -z "$ID" -a ! "-1" = "$ID" ]; then
@@ -178,7 +178,7 @@ function bookmark() {
         local NEXTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select max(id) from bookmarks"`
         NEXTID=$(($NEXTID + 1))
         sqlite3 $CMDFLAGS $BOOKMARK_DB "insert into bookmarks(id, name, path, type, added_on) \
-                              values($NEXTID, \"$NAME\", \"$MARK\", "1", datetime('now'))"
+                values($NEXTID, \"$NAME\", \"$MARK\", "1", datetime('now'))"
       fi
 
       echo "--> bookmarked \"$MARK\""
@@ -191,7 +191,7 @@ function bookmark() {
       #if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
       #if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
 
-      #MARK=`greadlink -f "$MARK"`
+      #MARK=`readlink -f "$MARK"`
       #local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
       #local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
 
@@ -207,7 +207,7 @@ function bookmark() {
       if [[ "$NAME" =~ ^[0-9]+$ ]]; then echo "name must contain at least one character. not updated"; return 1; fi
       if [[ ! "$UPDID" =~ ^[0-9]+$ ]]; then echo "you must provide a valid bookmark ID for updates"; return 1; fi
 
-      MARK=`greadlink -f "$MARK"`
+      MARK=`readlink -f "$MARK"`
       local EXISTID=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where id=$UPDID"`
       local UNIQUENAME=`sqlite3 $CMDFLAGS $BOOKMARK_DB "select id from bookmarks where name=\"$NAME\""`
 

@@ -48,6 +48,11 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   function fix_airplay {
     sudo kill $(ps -ax | grep '/usr/sbin/coreaudiod' | awk '{print $1}')
   }
+
+  # use coreutils version of the following programs for portability
+  alias readlink='greadlink'
+  alias sed='gsed'
+  alias grep='ggrep'
 fi 
 
 # Linux specific aliases

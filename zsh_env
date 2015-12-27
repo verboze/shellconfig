@@ -14,15 +14,17 @@ export ANDROID_HOME='/usr/local/lib/androidsdk'
 
 # configure path
 for path_candidate in /usr/local/lib/androidsdk/tools:\
-                      /usr/local/lib/androidsdk/platform-tools:\
-                      /usr/local/lib/apache-maven-3.3.3/bin:\
-                      /usr/local/sbin:\
-                      /usr/local/bin:\
-                      /usr/sbin:\
-                      /usr/bin:\
-                      /sbin:\
-                      /bin
-do [[ -d ${path_candidate} ]] && export PATH=${PATH}:${path_candidate}; done
+  /usr/local/lib/androidsdk/platform-tools:\
+  /usr/local/lib/apache-maven-3.3.3/bin:\
+  /usr/local/sbin:\
+  /usr/local/bin:\
+  /usr/sbin:\
+  /usr/bin:\
+  /sbin:\
+  /bin
+do
+  [[ -d ${path_candidate} ]] && export PATH=${PATH}:${path_candidate}
+done
 
 
 # history configuration
@@ -54,4 +56,5 @@ export PROJECT_HOME=$HOME/Projects
 [ -f /usr/local/bin/virtualenvwrapper.sh ] && source /usr/local/bin/virtualenvwrapper.sh
 
 # disable autocorrect
-unsetopt correct_all
+unsetopt correct
+#unsetopt correct-all

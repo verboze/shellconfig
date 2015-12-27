@@ -49,10 +49,12 @@ funciton zgen-loadconfig() {
   #zgen load caarlos0/zsh-git-sync
   zgen load TBSliver/zsh-plugin-colored-man
   zgen load mafredri/zsh-async
-  zgen load junegunn/fzf shell
+  #zgen load junegunn/fzf shell
+  zgen load junegunn/fzf
   zgen load skx/sysadmin-util
   zgen load chrissicool/zsh-256color
-  zgen load zsh-users/zsh-completions src
+  #zgen load zsh-users/zsh-completions src
+  zgen load zsh-users/zsh-completions
   zgen load RobSis/zsh-completion-generator
   zgen load rimraf/k
   zgen load StackExchange/blackbox
