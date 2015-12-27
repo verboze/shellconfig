@@ -28,6 +28,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   alias flushdnscache='dscacheutil -flushcache'
   alias cask='brew-cask'
   alias preview='ql'
+  alias service="lunchy"
 fi 
 
 # Linux only aliases
@@ -90,7 +91,7 @@ alias gitadd='pushd .; cdprojroot; git add -A; popd'
 alias gitunstage='git rm --cached'
 alias gitcommit='pushd .; cdprojroot; git commit -a; popd'
 alias gitamend='pushd .; cdprojroot; git commit -a --amend; popd'
-alias gitpush='git push'
+function gitpush() { git fetch; local MYSTAT=$(git --no-pager log HEAD..origin/master --oneline); [[ ! -z $MYSTAT ]] && { echo "changes detected upstream. rebase/merge first"; return 1; }; git push; }
 alias gitkeeptheirs='git checkout --theirs'
 alias gitkeepmine='git checkout --ours'
 alias gitremote='git remote -v'
@@ -204,7 +205,6 @@ alias motd='fortune'
 
 # SYSTEM/NETWORK
 # ===================
-alias service="lunchy"
 alias inetdown='sudo ifconfig en0 down'
 alias inetup='sudo ifconfig en0 up'
 alias shutdown='sudo shutdown'

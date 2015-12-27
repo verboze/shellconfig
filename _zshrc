@@ -7,7 +7,8 @@ export MYZCONF=$ZGENHOME/verboze/shellconfig-master
 
 [[ ! -d $ZGENHOME ]] && { 
   echo "downloading zgen..."
-  git clone https://github.com/tarjoilija/zgen $ZGENHOME;
+  #git clone https://github.com/tarjoilija/zgen $ZGENHOME;
+  git clone https://github.com/verboze/zgen $ZGENHOME;
 }
 
 source $ZGENHOME/zgen.zsh
@@ -67,27 +68,19 @@ funciton zgen-loadconfig() {
   zgen save
 }
 
-function zgen-uninstall() {
-  local resp
-  vared -p 'Unload all zsh plugins? All local changes will be lost (y/n): ' -c resp
+#function zgen-uninstall() {
+  #local resp
+  #vared -p 'Unload all zsh plugins? All local changes will be lost (y/n): ' -c resp
 
-  if [[ "$resp" =~ [yY] ]]; then
-    rm -rf ${HOME}/{.zgen,.zprezto}
-    rm -rf ${HOME}/.zcompdump*
-    echo "Plugins unloaded. they will be reloaded when .zshrc is sourced next"
-  fi
-}
+  #if [[ "$resp" =~ [yY] ]]; then
+    #rm -rf ${HOME}/{.zgen,.zprezto}
+    #rm -rf ${HOME}/.zcompdump*
+    #echo "Plugins unloaded. they will be reloaded when .zshrc is sourced next"
+  #fi
+#}
 
 # load plugins if not already laoded
 if ! zgen saved; then zgen-loadconfig; fi
-
-# environment, aliases and utility functions
-#[[ -s "$MYZCONF/zsh_env" ]] && source "$MYZCONF/zsh_env"
-#[[ -s "$MYZCONF/zsh_penv" ]] && source "$MYZCONF/zsh_penv"
-#[[ -s "$MYZCONF/zsh_aliases" ]] && source "$MYZCONF/zsh_aliases"
-#[[ -s "$MYZCONF/zsh_functions" ]] && source "$MYZCONF/zsh_functions"
-#[[ -s "$MYZCONF/zsh_completions" ]] && source "$MYZCONF/zsh_completions"
-#[[ -s "$MYZCONF/zsh_keybindings" ]] && source "$MYZCONF/zsh_keybindings"
 
 # hook direnv if present
 [[ 0 == $(which direnv >/dev/null 2>&1; echo $?) ]] && eval "$(direnv hook zsh)"
