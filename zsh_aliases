@@ -1,4 +1,4 @@
-unalias -a # clear all aliases, redefine my own ones
+unalias -m '*' # clear all aliases, redefine my own ones
 
 # OSX specific aliases
 if [[ "$(uname -s)" == "Darwin" ]]; then

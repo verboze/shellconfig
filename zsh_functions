@@ -5,7 +5,7 @@
 function cmdnfo() {
   [[ -z $1 ]] && { echo "missing command"; return 1; }
   which $1
-  type $1 | grep "alias" && { echo -n "defined in: "; grep -rl "alias[ ]+$1=" ${HOME/}.zgen; }
+  type $1 | grep "alias" && { echo -n "defined in: "; grep -rl "alias[ ]\+$1=" ${HOME}/.zgen; }
 }
 
 # CONFIG EDIT FUNCTION
@@ -13,7 +13,7 @@ function cmdnfo() {
 function rcedit() {
   [[ -z "$1" ]] && { "specify config file to edit"; return 1; }
 
-  case $1 in:
+  case $1 in
     vi|vim) vim ~/.vimrc; break ;;
     zsh) vim ~/.zshrc; break ;;
     env|penv|aliases|functions|completions|keybindings) vim $MYZCONF/zsh_$1; break ;;
@@ -281,11 +281,11 @@ function trash() {   #"delete file to trash"
 # ======================
 function j() { 
     if [[ "$1" =~ ^([0-9]+|-)$ ]]; then fg %$1; return; fi
-    if [ ! -z "$1" ]; then j | /usr/local/bin/ggrep --color -ie "$*"; return; fi
+    if [ ! -z "$1" ]; then j | /usr/local/bin/grep --color -ie "$*"; return; fi
 
     my_cl='[01;38;05;214;48;05;0m'
     local l
-    l=`jobs -l | gsed -e 's/\[\|\]//g' | gsed '/(pwd now:/d'`
+    l=`jobs -l | sed -e 's/\[\|\]//g' | sed '/(pwd now:/d'`
     if [ ! -z $l ]; then
         echo -e "${my_cl}JOB   PID    STATE      COMMAND$reset_color"
         awk '/[0-9]+[ ]+(\+|-)/{printf("%-3s %s %-6s %-10s %s\n", $1, $2, $3, $4, substr($0, index($0,$5))); \
@@ -360,7 +360,6 @@ function vsession() {
 function lsgrep()      { ack -il "$@" ; }                                 # list files matching pattern in provided files
 function scan24()      { nmap -sP ${1}/24; }                              # Probe a /24 for hosts
 function hgrep()       { history | grep -i "$@"; }                        # gets commands from history matching provided string
-function histsearch()  { history | grep -i "$@"; }                        # gets commands from history matching provided string
 function page()        { eval "$@" | less -I~; }                          # pipe any command to less
 function scptolocal()  { scp "$@" ${SSH_CLIENT%% *}:~/Downloads/; }       # scp file to machine you're sshing into this machine from
 function calc()        { awk "BEGIN{ print $* }" ; }                      # perform calculations
@@ -372,11 +371,11 @@ function psgrep()      { Q=`echo $* | sed -e 's/^\([a-zA-Z0-9]\)\(.*\)$/[\1]\2/g
 function lsf()         { find . -type f -iname "*$1*" -print0 | xargs -0 ls -l {} \; | sed 's/ [.][/]/ /' | grep -i "$1" ; } # find files containing string in their names
 function aac2mp3()     { [[ -z "$1" || -z "$2" ]] && { echo "missing input/output file"; return 1; }; [[ ! -f "$1" ]] && { echo "input file not found"; return 1; }; ffmpeg -i $1 -acodec mp3 -ac 2 -ab 160 $2; }
 function trimmp3()     { local infname outfname t0 t1; t0=$1; t1=$2; infname=$3; outfname=$4; ffmpeg -ss $t0 -t $t1 -i "$infname" -acodec copy "$outfname"; }
-function countfiles()  { if [ -z "$*" ]; then find . -type f | wc -l; else find . -type f -iname "$*" | wc -l fi; } # count files, optionally by kind
+function countfiles()  { if [[ -z "$*" ]]; then find . -type f | wc -l; else find . -type f -iname "$*" | wc -l; fi; } # count files, optionally by kind
 function authme()      { ssh "$1" 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_dsa.pub; } # push keys to remote machine for passwordless authentication
 function chgext()      { for file in *.$1; do mv $file $(echo $file | sed "s/\(.*\.\)$1/\1$2/"); done; } # Batch change extension from $1 to $2
 function term_colors() { for i in {0..255}; do printf "\x1b[38;5;${i}mcolour${i}\n"; done; } # print terminal coloers
-function ql()          { [[ -z "$@" ]] && { qlmanage -h; return -1; }; qlmanage -p "$@" >/dev/null 2>&1 &; } ]] } # preview (OSX)
+function ql()          { [[ -z "$@" ]] && { qlmanage -h; return -1; }; qlmanage -p "$@" >/dev/null 2>&1 &; } # preview (OSX)
 #broken...
 #function lsr()         { find "$@" -type f -print0 | xargs -0 ls -l ; #ls files recursively
 #function lgrep()       { find . -type f -iname "$1" -exec /usr/local/bin/grep -HliE "$2" {} \; ; }

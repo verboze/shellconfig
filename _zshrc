@@ -69,12 +69,12 @@ funciton zgen-loadconfig() {
 
 function zgen-uninstall() {
   local resp
-  vared -p 'unload all zsh plugins? (y/n): ' -c resp
+  vared -p 'Unload all zsh plugins? All local changes will be lost (y/n): ' -c resp
 
   if [[ "$resp" =~ [yY] ]]; then
     rm -rf ${HOME}/{.zgen,.zprezto}
     rm -rf ${HOME}/.zcompdump*
-    echo "plugins unloaded. they will be reloaded when .zshrc is sourced"
+    echo "Plugins unloaded. they will be reloaded when .zshrc is sourced next"
   fi
 }
 
