@@ -7,7 +7,7 @@ configure zsh, and the following plugins
   - [zprezto](https://github.com/sorin-ionescu/prezto): lean zsh framework (forked from oh-my-zsh)
     - loaded plugins: archive, osx, gnu-utility, python, rsync, screen,
       tmux, fasd, history-substring-search, syntax-highlighting
-  - [zsh-plugin-colored-man](https://github.com/TBSliver/zsh-plugin-colored-man)
+  - [zsh-plugin-colored-man](https://github.com/TBSliver/zsh-plugin-colored-man): pretty man pages
   - [zsh-async](https://github.com/mafredri/zsh-async): async work in zsh!
   - [fzf](https://github.com/junegunn/fzf): fuzzy file finder
   - [sysadmin-util](https://github.com/skx/sysadmin-util): sysadmin tools
