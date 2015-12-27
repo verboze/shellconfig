@@ -4,8 +4,14 @@
 # ====================================
 function cmdnfo() {
   [[ -z $1 ]] && { echo "missing command"; return 1; }
-  which $1
-  type $1 | grep "alias" && { echo -n "defined in: "; grep -rl "alias[ ]\+$1=" ${HOME}/.zgen; }
+  type $1
+  type $1 | grep "is an alias" && { 
+    echo -n "defined in: "; grep -rl "alias[ ]\+$1=" ${HOME}/.zgen;
+  }
+  type $1 | grep "is a shell function" && {
+    echo -n "defined in: "; grep -rl "function[ ]\+$1=" ${HOME}/.zgen; 
+    echo "definition:"; which $1; 
+  }
 }
 
 # CONFIG EDIT FUNCTION

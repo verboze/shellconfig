@@ -38,7 +38,7 @@ funciton zgen-loadconfig() {
   zgen prezto python
   zgen prezto rsync
   zgen prezto screen
-  zgen prezto command-not-found
+  #zgen prezto command-not-found
   zgen prezto tmux
   zgen prezto fasd
   zgen prezto history-substring-search
