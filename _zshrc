@@ -3,6 +3,7 @@
 
 export ZGENHOME=$HOME/.zgen
 export MYZCONF=$ZGENHOME/verboze/shellconfig-master
+export ZGEN_PREZTO_REPO=verboze #use my prezto config
 #export ZGEN_RESET_ON_CHANGE=($HOME/.zshrc) # autoupdate on zshrc change
 
 [[ ! -d $ZGENHOME ]] && { 
@@ -37,6 +38,7 @@ funciton zgen-loadconfig() {
   #zgen oh-my-zsh brew
   zgen prezto archive
   zgen prezto osx
+  zgen prezto spectrum
   zgen prezto gnu-utility
   zgen prezto python
   zgen prezto rsync

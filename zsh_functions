@@ -1,6 +1,9 @@
 #!/usr/bin/env zsh
 # TODO: break these into modular plugins, osx/linux
 
+# Load dependencies
+pmodload 'spectrum'
+
 # REMOVE DOWNLOADED ITEM FROM QUARANTINE
 # ======================================
 function unquarantine() {
@@ -21,6 +24,121 @@ function pledit() {
     sudo ${EDITOR} "${1}"; # use the default editor
     sudo plutil -convert binary1 "${1}" # convert it back to binary
   fi
+}
+
+# GET RANDOM POST FROM COMMANDLINEFU.COM
+# ======================================
+function clfu() {
+   #get random command from commandlinefu, print it
+   local out fname
+   fname=/tmp/clfu${RANDOM}.txt
+   w3m -dump "http://www.commandlinefu.com/commands/random/plaintext" | sed  '1,2d' > $fname
+   out=$(source-highlight --failsafe -f esc --lang-def=sh.lang --style-file=esc.style -i $fname)
+   nl -b n <<<$out
+   rm -f $fname
+}
+
+# Get local and external IPs
+# ==========================
+function inetstat() {
+   localip=`ipconfig getifaddr en0`
+   remoteip=`wget -q -O - checkip.dyndns.org|sed -e 's/.*Current IP Address: //' -e 's/<.*$//'`
+   echo -ne "LOCAL  IP: $localip\nREMOTE IP: $remoteip\n"
+}
+
+# delete to trash
+# ===============
+function trash() {   #"delete file to trash"
+   [[ ! -d "$HOME/.Trash" ]] && { mkdir -p "$HOME/.Trash"; }
+   for i in "$@"; do
+      #only delete valid files
+      local p=$(basename "$i")
+      if [[ -d "$i" || -f "$i" ]]; then
+         # append the time if file with same name already exists in trash
+         if [[ -d "$HOME/.Trash/$p" || -f "$HOME/.Trash/$p" ]]; then
+            p="$p-$(date +%Y%m%d%H%M%S)"
+         fi
+         # TODO: keep a db record of trashed files so
+         #       to undelete can list those files, and restore them as needed
+         mv "$i" "$HOME/.Trash/$p"
+      else echo "\"$i\" does not exist"; fi
+   done
+}
+
+# prettier jobs function
+# ======================
+function j() { 
+    if [[ "$1" =~ ^([0-9]+|-)$ ]]; then fg %$1; return; fi
+    if [ ! -z "$1" ]; then j | /usr/local/bin/grep --color -ie "$*"; return; fi
+
+    local joblist
+    joblist=`jobs -l | sed -e 's/\[\|\]//g' | sed '/(pwd now:/d'`
+    if [ ! -z $joblist ]; then
+        echo -e "$FG[234]$FX[bold]JOB   PID    STATE      COMMAND$BG[NONE]$FG[NONE]$FX[NONE]"
+        awk '/[0-9]+[ ]+(\+|-)/{printf("%-3s %s %-6s %-10s %s\n", $1, $2, $3, $4, substr($0, index($0,$5))); \
+             next}{printf("%-5s %-6s %-10s %s\n", $1, $2, $3, substr($0, index($0,$4)))}' <<< $joblist
+    else echo "no current jobs..."
+    fi  
+}
+
+# allow CD to jump to bookmarks
+# =============================
+function cd() {
+    if [ -z "$*" ]; then
+        builtin cd
+    elif [ -d "$*" -o "x-" = "x$*" ]; then
+        builtin cd "$@"
+    elif [ "x`bookmark | awk '{print $2}' | grep $*`" = "x$*" ]; then
+        bookmark -j "$@"
+    else
+        echo "no such directory or bookmark: $*" 1>&2
+        return 1
+    fi
+}
+
+# undelete trashed files
+# ======================
+# TODO: implement
+
+# list/load vim sessions
+# ======================
+function vsession() {
+    local slist scount session action
+    # get args
+    action='show'
+    while getopts ":dlc" opt; do
+        case $opt in
+             d)  action='del'    ;;
+             l)  action='list'   ;;
+             c)  action='create' ;;
+            \?)  echo "invalid option: -$OPTARG" >&2; return 1 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    session=$1
+
+    [[ ! -z "$session" && $action == "show" ]] && {  action='load'; }
+    [[ ! -z "$session" && ! "x$action" == "xcreate" && ! -f  ~/.vim/sessions/${session}.vim ]] && { echo "invalid session: $session" >&2; return 1; }
+    if [[ "x$action" == "xlist"  ]]; then
+        cat ~/.vim/sessions/${session}.vim | grep "^\(badd\)" | sed 's/badd\|+[0-9]\+//g'
+    elif [[ "x$action" == "xload"  ]]; then
+        vim -S ~/.vim/sessions/${session}.vim
+    elif [[ "x$action" == "xcreate"  ]]; then
+        [[ -f  ~/.vim/sessions/${session}.vim ]] && { echo "session [$session] already exists" >&2; return 1; }
+        vim -c ":SaveSession ${session}"
+    elif [[ "x$action" == "xdel"  ]]; then
+        read -q REPLY\?"delete session $session (y/n): "; echo -ne "\n"
+        [[ "x$REPLY" == "xy" ]] && { rm -f ~/.vim/sessions/${session}.vim; echo -ne "session $session deleted\n"; }
+    else
+        # no input provided, just show sessions
+        slist=""
+        scount=1
+        for i in $(ls -rt ~/.vim/sessions | egrep ".vim$"); do
+            slist="${slist}${scount}: $(basename $i .vim)\n"
+            scount=$(($scount + 1))
+        done
+        echo -ne $slist
+    fi
 }
 
 # DETAILS ABOUT COMMAND/FUNCTION/ALIAS
@@ -265,122 +383,6 @@ function bookmark() {
     *)
     ;;
   esac
-}
-
-# GET RANDOM POST FROM COMMANDLINEFU.COM
-# ======================================
-function clfu() {
-   #get random command from commandlinefu, print it
-   local out fname
-   fname=/tmp/clfu${RANDOM}.txt
-   w3m -dump "http://www.commandlinefu.com/commands/random/plaintext" | sed  '1,2d' > $fname
-   out=$(source-highlight --failsafe -f esc --lang-def=sh.lang --style-file=esc.style -i $fname)
-   nl -b n <<<$out
-   rm -f $fname
-}
-
-# Get local and external IPs
-# ==========================
-function inetstat() {
-   localip=`ipconfig getifaddr en0`
-   remoteip=`wget -q -O - checkip.dyndns.org|sed -e 's/.*Current IP Address: //' -e 's/<.*$//'`
-   echo -ne "LOCAL  IP: $localip\nREMOTE IP: $remoteip\n"
-}
-
-# delete to trash
-# ===============
-function trash() {   #"delete file to trash"
-   [[ ! -d "$HOME/.Trash" ]] && { mkdir -p "$HOME/.Trash"; }
-   for i in "$@"; do
-      #only delete valid files
-      local p=$(basename "$i")
-      if [[ -d "$i" || -f "$i" ]]; then
-         # append the time if file with same name already exists in trash
-         if [[ -d "$HOME/.Trash/$p" || -f "$HOME/.Trash/$p" ]]; then
-            p="$p-$(date +%Y%m%d%H%M%S)"
-         fi
-         # TODO: keep a db record of trashed files so
-         #       to undelete can list those files, and restore them as needed
-         mv "$i" "$HOME/.Trash/$p"
-      else echo "\"$i\" does not exist"; fi
-   done
-}
-
-# prettier jobs function
-# ======================
-function j() { 
-    if [[ "$1" =~ ^([0-9]+|-)$ ]]; then fg %$1; return; fi
-    if [ ! -z "$1" ]; then j | /usr/local/bin/grep --color -ie "$*"; return; fi
-
-    my_cl='[01;38;05;214;48;05;0m'
-    local l
-    l=`jobs -l | sed -e 's/\[\|\]//g' | sed '/(pwd now:/d'`
-    if [ ! -z $l ]; then
-        echo -e "${my_cl}JOB   PID    STATE      COMMAND$reset_color"
-        awk '/[0-9]+[ ]+(\+|-)/{printf("%-3s %s %-6s %-10s %s\n", $1, $2, $3, $4, substr($0, index($0,$5))); \
-             next}{printf("%-5s %-6s %-10s %s\n", $1, $2, $3, substr($0, index($0,$4)))}' <<< $l
-    else echo "no current jobs..."
-    fi  
-}
-
-# allow CD to jump to bookmarks
-# =============================
-function cd() {
-    if [ -z "$*" ]; then
-        builtin cd
-    elif [ -d "$*" -o "x-" = "x$*" ]; then
-        builtin cd "$@"
-    elif [ "x`bookmark | awk '{print $2}' | grep $*`" = "x$*" ]; then
-        bookmark -j "$@"
-    else
-        echo "no such directory or bookmark: $*" 1>&2
-        return 1
-    fi
-}
-
-# undelete trashed files
-# ======================
-# TODO: implement
-
-# list/load vim sessions
-# ======================
-function vsession() {
-    local slist scount session action
-    # get args
-    action='show'
-    while getopts ":dlc" opt; do
-        case $opt in
-             d)  action='del'    ;;
-             l)  action='list'   ;;
-             c)  action='create' ;;
-            \?)  echo "invalid option: -$OPTARG" >&2; return 1 ;;
-        esac
-    done
-    shift $((OPTIND-1))
-    session=$1
-
-    [[ ! -z "$session" && $action == "show" ]] && {  action='load'; }
-    [[ ! -z "$session" && ! "x$action" == "xcreate" && ! -f  ~/.vim/sessions/${session}.vim ]] && { echo "invalid session: $session" >&2; return 1; }
-    if [[ "x$action" == "xlist"  ]]; then
-        cat ~/.vim/sessions/${session}.vim | grep "^\(badd\)" | sed 's/badd\|+[0-9]\+//g'
-    elif [[ "x$action" == "xload"  ]]; then
-        vim -S ~/.vim/sessions/${session}.vim
-    elif [[ "x$action" == "xcreate"  ]]; then
-        [[ -f  ~/.vim/sessions/${session}.vim ]] && { echo "session [$session] already exists" >&2; return 1; }
-        vim -c ":SaveSession ${session}"
-    elif [[ "x$action" == "xdel"  ]]; then
-        read -q REPLY\?"delete session $session (y/n): "; echo -ne "\n"
-        [[ "x$REPLY" == "xy" ]] && { rm -f ~/.vim/sessions/${session}.vim; echo -ne "session $session deleted\n"; }
-    else
-        # no input provided, just show sessions
-        slist=""
-        scount=1
-        for i in $(ls -rt ~/.vim/sessions | egrep ".vim$"); do
-            slist="${slist}${scount}: $(basename $i .vim)\n"
-            scount=$(($scount + 1))
-        done
-        echo -ne $slist
-    fi
 }
 
 # ============================================================================================================================
