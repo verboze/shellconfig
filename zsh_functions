@@ -74,7 +74,7 @@ function j() {
     local joblist
     joblist=`jobs -l | sed -e 's/\[\|\]//g' | sed '/(pwd now:/d'`
     if [ ! -z $joblist ]; then
-        echo -e "$FG[234]$FX[bold]JOB   PID    STATE      COMMAND$BG[NONE]$FG[NONE]$FX[NONE]"
+        echo -e "$FG[214]$FX[bold]JOB   PID    STATE      COMMAND$BG[none]$FG[none]$FX[none]"
         awk '/[0-9]+[ ]+(\+|-)/{printf("%-3s %s %-6s %-10s %s\n", $1, $2, $3, $4, substr($0, index($0,$5))); \
              next}{printf("%-5s %-6s %-10s %s\n", $1, $2, $3, substr($0, index($0,$4)))}' <<< $joblist
     else echo "no current jobs..."

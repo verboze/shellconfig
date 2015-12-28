@@ -127,7 +127,7 @@ alias ...="cd ../.."
 alias vs='vsession'
 alias cleanvimswap="rm -f $HOME/.vim/swap/*.swp"
 alias XXX='exit'
-alias rm='safe-rm -i'
+iwhich safe-rm >/dev/null 2>&1 && alias rm='safe-rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 alias ls='gls --color --group-directories-first'
@@ -156,6 +156,7 @@ alias stripcolors='sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"'
 
 alias lsz='unzip -l'
 alias lsg='ll | grep -i'
+alias cls='clear; ls'
 
 # SERVERS AND SUCH
 # ===================
